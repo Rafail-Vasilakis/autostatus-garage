@@ -58,11 +58,15 @@
                 </div>
             </a>
 
-            <!-- AADE Status Pill + Action Links -->
+            <!-- AADE Status Pill + Lock Button + Action Links -->
             <div class="flex items-center space-x-2">
                 <a href="/settings/aade" class="text-[10px] px-2 py-1 rounded-lg border font-bold uppercase tracking-wider transition hover:opacity-80 flex items-center gap-1.5 {% if aade_settings.aade_env == 'production' %}bg-emerald-500/20 text-emerald-400 border-emerald-500/30{% elif aade_settings.aade_env == 'sandbox' %}bg-sky-500/20 text-sky-400 border-sky-500/30{% else %}bg-amber-500/20 text-amber-400 border-amber-500/30{% endif %}">
                     <span class="w-1.5 h-1.5 rounded-full {% if aade_settings.last_test_status == 'CONNECTED' %}bg-emerald-400 animate-pulse{% elif aade_settings.last_test_status == 'FAILED' %}bg-rose-400{% else %}bg-amber-400{% endif %}"></span>
                     <span>AADE {{ aade_settings.aade_env|upper }}</span>
+                </a>
+
+                <a href="/logout" title="Κλείδωμα Οθόνης (PIN)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-garage-700 hover:bg-garage-600 text-slate-400 hover:text-amber-400 border border-garage-600 flex items-center justify-center text-xs transition" onclick="return confirm('Κλείδωμα της οθόνης διαχείρισης συνεργείου;');">
+                    <i class="fa-solid fa-lock"></i>
                 </a>
 
                 <!-- Desktop Action Links (hidden on mobile, mobile uses bottom nav) -->

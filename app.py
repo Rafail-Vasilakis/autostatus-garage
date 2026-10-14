@@ -1,7 +1,7 @@
 import os
 import uuid
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, send_file
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, send_file, session
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Vehicle, WorkOrder, DamageApproval, AadeRegistryLog, GarageSettings
@@ -28,12 +28,22 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url or ('sqlite:///' + os.path.join(o
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
+
+    # Safe column migration for existing databases
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE garage_settings ADD COLUMN workshop_pin VARCHAR(20) DEFAULT '1234'"))
+            conn.commit()
+    except Exception:
+        pass
 
     # Seed demo garage data if database is empty
     if Vehicle.query.count() == 0:
@@ -84,6 +94,49 @@ with app.app_context():
 def inject_settings():
     settings = GarageSettings.get_settings()
     return dict(aade_settings=settings)
+
+
+@app.before_request
+def require_workshop_auth():
+    # Endpoints accessible to the public (customers & static resources)
+    exempt_endpoints = {'static', 'login_view', 'api_auth_pin', 'logout_view', 'track', 'decide_approval'}
+    if request.endpoint in exempt_endpoints or (request.endpoint is None and request.path.startswith('/static/')):
+        return None
+
+    # Protect all workshop dashboard, intake, settings, aade, and admin APIs
+    if not session.get('workshop_authenticated'):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'error': 'Απαιτείται σύνδεση συνεργείου', 'auth_required': True}), 401
+        return redirect(url_for('login_view', next=request.path if request.path != '/' else None))
+
+
+@app.route('/login')
+def login_view():
+    if session.get('workshop_authenticated'):
+        return redirect(url_for('index'))
+    return render_template('login.html', next=request.args.get('next'))
+
+
+@app.route('/api/auth/pin', methods=['POST'])
+def api_auth_pin():
+    data = request.json or {}
+    entered_pin = str(data.get('pin', '')).strip()
+    settings = GarageSettings.get_settings()
+    expected_pin = str(settings.workshop_pin or '1234').strip()
+
+    if entered_pin == expected_pin:
+        session.permanent = True
+        session['workshop_authenticated'] = True
+        next_url = data.get('next') or url_for('index')
+        return jsonify({'success': True, 'redirect': next_url})
+
+    return jsonify({'success': False, 'error': 'Λανθασμένο PIN! Δοκιμάστε ξανά.'}), 401
+
+
+@app.route('/logout')
+def logout_view():
+    session.pop('workshop_authenticated', None)
+    return redirect(url_for('login_view'))
 
 
 @app.route('/')
@@ -323,6 +376,8 @@ def api_aade_settings():
             settings.aade_subscription_key = data['aade_subscription_key'].strip()
         if 'aade_env' in data and data['aade_env'] in ['sandbox', 'production', 'simulation']:
             settings.aade_env = data['aade_env']
+        if 'workshop_pin' in data and data['workshop_pin'].strip():
+            settings.workshop_pin = data['workshop_pin'].strip()
 
         db.session.commit()
         return jsonify({'success': True, 'settings': settings.to_dict()})

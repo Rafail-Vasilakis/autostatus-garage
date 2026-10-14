@@ -117,6 +117,22 @@
             </div>
         </div>
 
+        <div class="border-t border-garage-700 pt-4">
+            <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lock text-amber-400"></i>
+                    <span>4ψήφιο PIN Συνεργείου (Workshop PIN)</span>
+                </label>
+                <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Απόρρητο</span>
+            </div>
+            <input type="text" id="cfgPin" value="{{ settings.workshop_pin or '1234' }}" maxlength="6"
+                class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition tracking-widest font-bold"
+                placeholder="1234">
+            <p class="text-[11px] text-slate-400 mt-1">
+                Κλειδώνει την αρχική οθόνη και τα δεδομένα της ΑΑΔΕ ώστε οι πελάτες που λαμβάνουν tracking link να βλέπουν <strong>μόνο</strong> το δικό τους όχημα.
+            </p>
+        </div>
+
         <!-- Buttons -->
         <div class="flex flex-col sm:flex-row items-center gap-3 pt-3">
             <button type="button" onclick="testAadeConnection()" id="btnTest"
@@ -236,7 +252,8 @@
             vat_number: document.getElementById('cfgVat').value,
             aade_user_id: document.getElementById('cfgUserId').value,
             aade_subscription_key: document.getElementById('cfgKey').value,
-            aade_env: document.getElementById('cfgEnv').value
+            aade_env: document.getElementById('cfgEnv').value,
+            workshop_pin: document.getElementById('cfgPin').value
         };
 
         try {
