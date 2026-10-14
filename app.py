@@ -11,6 +11,7 @@ from greek_vehicle_service import GreekVehicleService
 from registration_doc_service import RegistrationDocService
 
 app = Flask(__name__)
+app.config['APP_VERSION'] = '2.1.0'
 # Enable Render reverse proxy HTTPS detection
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
