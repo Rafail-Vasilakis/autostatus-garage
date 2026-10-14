@@ -17,18 +17,19 @@
     </div>
 
     <!-- Camera Plate Scanner Viewfinder (Collapsible/Toggle) -->
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-4 shadow-xl space-y-3">
+    <!-- Camera Plate Scanner Viewfinder (Collapsible/Toggle) -->
+    <div class="garage-card p-4 shadow-xl space-y-3 border-white/[0.08]">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span class="text-xs font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <i class="fa-solid fa-camera text-amber-400"></i>
                 Αυτόματη Αναγνώριση
             </span>
             <div class="flex items-center gap-2">
-                <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-2.5 py-1.5 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-300 rounded-xl border border-garage-600 flex items-center gap-1">
+                <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-camera"></i>
                     <span>Κάμερα Πινακίδας</span>
                 </button>
-                <button type="button" onclick="document.getElementById('registrationFileInput').click()" class="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow">
+                <button type="button" onclick="document.getElementById('registrationFileInput').click()" class="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
                     <i class="fa-solid fa-file-invoice"></i>
                     <span>📄 Σκανάρισμα Άδειας (OCR)</span>
                 </button>
@@ -41,18 +42,18 @@
             <span id="ocrProgressText">Ανάγνωση Άδειας Κυκλοφορίας με OCR...</span>
         </div>
 
-        <div id="cameraContainer" class="relative rounded-xl overflow-hidden bg-slate-950 border border-garage-700 hidden aspect-video flex items-center justify-center">
+        <div id="cameraContainer" class="relative rounded-xl overflow-hidden bg-slate-950 border border-white/[0.08] hidden aspect-video flex items-center justify-center">
             <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
             <!-- Guided License Plate Target Bounding Box -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div class="w-3/4 h-1/3 border-2 border-emerald-400 border-dashed rounded-lg flex items-center justify-center bg-emerald-500/10">
-                    <span class="text-[11px] font-mono text-emerald-300 font-bold bg-slate-950/80 px-2 py-0.5 rounded">
+                    <span class="text-[11px] font-mono text-emerald-300 font-bold bg-slate-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
                         Τοποθετήστε την πινακίδα εδώ
                     </span>
                 </div>
             </div>
             <!-- Snap OCR Button -->
-            <button type="button" onclick="captureAndScanPlate()" class="absolute bottom-2 px-4 py-2 bg-emerald-500 text-slate-950 font-black text-xs rounded-full shadow-lg shadow-emerald-500/40 flex items-center gap-1.5 active:scale-95">
+            <button type="button" onclick="captureAndScanPlate()" class="absolute bottom-3 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-full shadow-lg shadow-emerald-500/40 flex items-center gap-1.5 transition">
                 <i class="fa-solid fa-check"></i> Λήψη & Αναγνώριση
             </button>
         </div>
@@ -60,21 +61,27 @@
     </div>
 
     <!-- The 10-Second Fast Intake Form -->
-    <form action="/intake" method="POST" class="bg-garage-800 border border-garage-700 rounded-2xl p-5 shadow-xl space-y-4">
+    <form action="/intake" method="POST" class="garage-card p-5 sm:p-6 shadow-2xl space-y-4 border-white/[0.08]">
         
-        <!-- License Plate Field (High Contrast Big Font) -->
+        <!-- License Plate Field (Authentic Greek EU Plate Look) -->
         <div>
-            <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-1">
+            <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-2">
                 Αριθμός Κυκλοφορίας (Πινακίδα) *
             </label>
             <div class="relative">
-                <input type="text" id="plateInput" name="plate" required autofocus
-                    placeholder="π.χ. ΥΝΕ-5421"
-                    oninput="handlePlateInput(this)"
-                    class="w-full bg-slate-950 border-2 border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-2xl font-mono font-black text-amber-300 uppercase tracking-widest text-center shadow-inner focus:outline-none transition">
-                <span id="plateLookupBadge" class="absolute right-3 top-3.5 text-xs font-bold hidden"></span>
+                <div class="eu-plate-input-wrapper shadow-lg">
+                    <div class="eu-plate-flag">
+                        <span class="eu-plate-stars">★★★★★</span>
+                        <span class="eu-plate-code">GR</span>
+                    </div>
+                    <input type="text" id="plateInput" name="plate" required autofocus
+                        placeholder="ΥΝΕ-5421"
+                        oninput="handlePlateInput(this)"
+                        class="eu-plate-input-field">
+                </div>
+                <span id="plateLookupBadge" class="absolute right-4 top-4 text-xs font-bold hidden z-10"></span>
             </div>
-            <div id="lookupAlert" class="hidden mt-2 p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold transition">
+            <div id="lookupAlert" class="hidden mt-2.5 p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition">
                 <div class="flex items-center gap-2">
                     <i id="lookupAlertIcon" class="fa-solid fa-circle-check"></i>
                     <span id="lookupAlertText"></span>
@@ -88,11 +95,11 @@
             <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Στοιχεία Πελάτη *</span>
                 <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="pasteFromClipboard()" title="Αυτόματη επικόλληση αριθμού ή ονόματος από αντιγραφή" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-slate-200 hover:text-white border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow">
+                    <button type="button" onclick="pasteFromClipboard()" title="Αυτόματη επικόλληση αριθμού ή ονόματος από αντιγραφή" class="px-2.5 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white border border-white/[0.08] rounded-lg text-xs font-semibold flex items-center gap-1 transition shadow">
                         <i class="fa-solid fa-paste text-amber-400"></i>
                         <span>📋 Επικόλληση</span>
                     </button>
-                    <button type="button" onclick="selectFromContacts()" title="Επιλογή απευθείας από το ευρετήριο επαφών κινητού" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow">
+                    <button type="button" onclick="selectFromContacts()" title="Επιλογή απευθείας από το ευρετήριο επαφών κινητού" class="px-2.5 py-1 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-white/[0.08] rounded-lg text-xs font-semibold flex items-center gap-1 transition shadow">
                         <i class="fa-solid fa-address-book"></i>
                         <span>📱 Επαφές</span>
                     </button>
@@ -102,30 +109,30 @@
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ονοματεπώνυμο *</label>
                     <input type="text" id="ownerNameInput" name="owner_name" required placeholder="π.χ. Γιώργος Παπαδόπουλος"
-                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                        class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 mb-1">Κινητό Τηλέφωνο (Viber/SMS) *</label>
                     <input type="tel" id="ownerPhoneInput" name="owner_phone" required placeholder="69XXXXXXXX"
-                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400">
+                        class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
                 </div>
             </div>
         </div>
 
         <!-- AADE AFM Lookup for Invoice / Legal Name -->
-        <div class="p-3 bg-garage-900/60 border border-garage-700/80 rounded-xl space-y-1.5">
+        <div class="p-3 bg-slate-950/50 border border-white/[0.08] rounded-xl space-y-2">
             <div class="flex items-center justify-between">
-                <label class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                <label class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-building text-amber-400"></i>
                     <span>ΑΦΜ Πελάτη (προαιρετικό για τιμολόγιο & αυτόματη εύρεση)</span>
                 </label>
-                <span class="text-[10px] text-slate-400 font-mono">myDATA Live</span>
+                <span class="text-[10px] text-slate-400 font-mono bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">myDATA Live</span>
             </div>
             <div class="flex items-center gap-2">
                 <input type="text" id="afmInput" maxlength="9" placeholder="π.χ. 090000045 (9 ψηφία)"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
                 <button type="button" onclick="lookupAfm()" id="btnAfmLookup"
-                    class="px-3.5 py-2 bg-garage-700 hover:bg-garage-600 border border-garage-600 text-amber-400 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 active:scale-95 transition shadow">
+                    class="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 border border-white/[0.08] text-amber-400 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition shadow">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span id="btnAfmText">Εύρεση ΑΑΔΕ</span>
                 </button>
@@ -135,17 +142,17 @@
             </p>
         </div>
 
-        <!-- Car Model & Service Type -->
+        <!-- Car Model & Initial Cost -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">Μοντέλο Οχήματος</label>
                 <input type="text" id="carModelInput" name="car_model" placeholder="π.χ. Toyota Yaris 1.3"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">Αρχική Εκτίμηση Κόστους (€)</label>
                 <input type="number" step="0.5" name="initial_cost" placeholder="0.00"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400">
+                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 tabular-nums">
             </div>
         </div>
 
@@ -153,19 +160,19 @@
         <div>
             <label class="block text-xs font-bold text-slate-300 mb-1.5">Είδος Εργασίας (ΑΑΔΕ)</label>
             <input type="text" id="serviceTypeInput" name="service_type" value="Τακτικό Service / Λάδια" required
-                class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2 text-xs text-white mb-2 focus:outline-none focus:border-amber-400">
+                class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white mb-2.5 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
             
             <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="setServiceType('Τακτικό Service / Λάδια')" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 rounded-lg text-[11px] font-semibold text-slate-300 border border-garage-600">
+                <button type="button" onclick="setServiceType('Τακτικό Service / Λάδια')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white rounded-xl text-xs font-semibold text-slate-300 border border-white/[0.08] transition">
                     Λάδια & Φίλτρα
                 </button>
-                <button type="button" onclick="setServiceType('Φρένα / Τακάκια')" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 rounded-lg text-[11px] font-semibold text-slate-300 border border-garage-600">
+                <button type="button" onclick="setServiceType('Φρένα / Τακάκια')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white rounded-xl text-xs font-semibold text-slate-300 border border-white/[0.08] transition">
                     Φρένα / Τακάκια
                 </button>
-                <button type="button" onclick="setServiceType('Διαγνωστικός Έλεγχος')" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 rounded-lg text-[11px] font-semibold text-slate-300 border border-garage-600">
+                <button type="button" onclick="setServiceType('Διαγνωστικός Έλεγχος')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white rounded-xl text-xs font-semibold text-slate-300 border border-white/[0.08] transition">
                     Διαγνωστικό
                 </button>
-                <button type="button" onclick="setServiceType('Προετοιμασία ΚΤΕΟ')" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 rounded-lg text-[11px] font-semibold text-slate-300 border border-garage-600">
+                <button type="button" onclick="setServiceType('Προετοιμασία ΚΤΕΟ')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white rounded-xl text-xs font-semibold text-slate-300 border border-white/[0.08] transition">
                     Έλεγχος ΚΤΕΟ
                 </button>
             </div>
@@ -175,16 +182,16 @@
         <div>
             <label class="block text-xs font-bold text-slate-400 mb-1">Σημειώσεις / Παρατηρήσεις (Προαιρετικό)</label>
             <input type="text" name="notes" placeholder="π.χ. Ακούγεται θόρυβος στο δεξί ημιαξόνιο"
-                class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-400">
+                class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
         </div>
 
         <!-- Big Legal & Submission Button -->
         <div class="pt-2">
-            <button type="submit" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-2">
+            <button type="submit" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-shield-halved text-base"></i>
-                <span>Είσοδος & Αυτόματος Συγχρονισμός ΑΑΔΕ</span>
+                <span>Είσοδος & Αυτόματος Συγχρονισμός myDATA</span>
             </button>
-            <p class="text-[11px] text-center text-slate-400 mt-2">
+            <p class="text-[11px] text-center text-slate-400 mt-2.5">
                 <i class="fa-solid fa-lock text-[10px] text-emerald-400"></i> Πλήρης νομική κάλυψη σύμφωνα με την απόφαση ΑΑΔΕ Α.1057/2025.
             </p>
         </div>
@@ -192,14 +199,14 @@
     </form>
 
     <!-- Contacts Fallback / Quick Paste Modal -->
-    <div id="contactsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-garage-800 border border-garage-700 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+    <div id="contactsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="garage-card animate-enter-modal max-w-sm w-full p-5 space-y-4 shadow-2xl border-white/[0.1]">
             <div class="flex items-center justify-between">
                 <span class="text-sm font-extrabold text-white flex items-center gap-2">
                     <i class="fa-solid fa-address-book text-amber-400"></i>
                     Εισαγωγή Στοιχείων Πελάτη
                 </span>
-                <button type="button" onclick="closeContactsModal()" class="text-slate-400 hover:text-white text-lg">
+                <button type="button" onclick="closeContactsModal()" class="text-slate-400 hover:text-white text-lg p-1">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -207,15 +214,15 @@
                 Σε <strong>Android (Chrome)</strong> το κουμπί ανοίγει απευθείας το ευρετήριο του τηλεφώνου. Σε iPhone ή Υπολογιστή, πατήστε «Αυτόματη Επικόλληση» για να διαβάσει το αντεγραμμένο τηλέφωνο ή όνομα από Viber/SMS.
             </p>
             <div>
-                <button type="button" onclick="pasteFromClipboard()" class="w-full py-2.5 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-amber-400/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow">
+                <button type="button" onclick="pasteFromClipboard()" class="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-400/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow">
                     <i class="fa-solid fa-paste"></i>
                     <span>📋 Αυτόματη Επικόλληση από Αντιγραφή</span>
                 </button>
             </div>
-            <div class="p-3 bg-garage-900 border border-garage-700 rounded-xl space-y-2">
+            <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2">
                 <label class="text-[11px] font-bold text-slate-400 block">Χειροκίνητη Επικόλληση / Πληκτρολόγηση:</label>
-                <input type="text" id="quickPasteContact" placeholder="π.χ. Γιώργος Παπαδόπουλος 6912345678" class="w-full bg-garage-800 border border-garage-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
-                <button type="button" onclick="applyQuickContact()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition active:scale-95">
+                <input type="text" id="quickPasteContact" placeholder="π.χ. Γιώργος Παπαδόπουλος 6912345678" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
+                <button type="button" onclick="applyQuickContact()" class="w-full py-2 btn-primary-glow font-bold text-xs rounded-lg transition">
                     Εφαρμογή Στοιχείων
                 </button>
             </div>

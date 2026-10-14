@@ -23,19 +23,19 @@
     </div>
 
     <!-- Quick Action / Status Card -->
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-5 shadow-xl space-y-4">
+    <div class="garage-card p-5 shadow-xl space-y-4 border-white/[0.08]">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     Ασφάλεια Δεδομένων Συνεργείου
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">
+                <p class="text-xs text-slate-400 mt-1">
                     Όλα τα οχήματα, οι εγκρίσεις ζημιών και τα επίσημα UID της ΑΑΔΕ αποθηκεύονται σε αρχείο .zip.
                 </p>
             </div>
             <button onclick="createNewBackup()" id="btnCreateBackup"
-                class="w-full sm:w-auto py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 transition">
+                class="w-full sm:w-auto py-2.5 px-4 btn-primary-glow font-black text-xs rounded-xl flex items-center justify-center gap-2 transition">
                 <i class="fa-solid fa-floppy-disk"></i>
                 <span id="btnCreateBackupText">Λήψη Backup Τώρα (.zip)</span>
             </button>
@@ -43,7 +43,7 @@
     </div>
 
     <!-- Existing Backups List -->
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-5 shadow-xl space-y-3">
+    <div class="garage-card p-5 shadow-xl space-y-3 border-white/[0.08]">
         <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
             Διαθέσιμα Αντίγραφα Ασφαλείας
         </h3>
@@ -51,20 +51,20 @@
         <div id="backupsList" class="space-y-2">
             {% if backups %}
                 {% for b in backups %}
-                <div class="flex items-center justify-between p-3 bg-garage-900 border border-garage-700/80 rounded-xl hover:border-garage-600 transition">
+                <div class="flex items-center justify-between p-3 bg-slate-950/60 border border-white/[0.06] rounded-xl hover:border-white/[0.12] transition">
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-lg bg-garage-800 text-amber-400 flex items-center justify-center font-bold text-base border border-garage-700">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-base border border-amber-500/20">
                             <i class="fa-solid fa-file-zipper"></i>
                         </div>
                         <div>
                             <span class="text-xs font-mono font-bold text-white block">{{ b.filename }}</span>
-                            <span class="text-[11px] text-slate-400 font-sans">
+                            <span class="text-[11px] text-slate-400 font-sans tabular-nums">
                                 {{ b.created_at }} • {{ b.size_kb }} KB
                             </span>
                         </div>
                     </div>
                     <a href="/api/backup/download/{{ b.filename }}" download
-                        class="py-1.5 px-3 bg-garage-700 hover:bg-garage-600 text-slate-200 text-xs font-bold rounded-lg border border-garage-600 flex items-center gap-1.5 transition">
+                        class="py-1.5 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-white/[0.08] flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-download text-emerald-400"></i>
                         <span>Κατέβασμα</span>
                     </a>
@@ -77,16 +77,16 @@
     </div>
 
     <!-- Restore Box -->
-    <div class="bg-garage-800/60 border border-garage-700/80 rounded-2xl p-5 space-y-3">
+    <div class="garage-card p-5 space-y-3 border-rose-500/20 bg-rose-500/[0.02]">
         <div class="flex items-center gap-2 text-rose-400 font-bold text-xs">
             <i class="fa-solid fa-triangle-exclamation"></i>
             <span>Επαναφορά από Αντίγραφο (Disaster Recovery)</span>
         </div>
-        <p class="text-xs text-slate-400">
+        <p class="text-xs text-slate-400 leading-relaxed">
             Αν αλλάξετε υπολογιστή, τάμπλετ ή διακομιστή, μπορείτε να ανεβάσετε το τελευταίο .zip αρχείο για να επαναφέρετε αυτόματα όλες τις ράμπες, τους πελάτες και τα αρχεία.
         </p>
         <div class="flex items-center gap-2 pt-1">
-            <input type="file" id="restoreFileInput" accept=".zip" class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-garage-700 file:text-slate-200 hover:file:bg-garage-600">
+            <input type="file" id="restoreFileInput" accept=".zip" class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
             <button onclick="restoreBackupFile()" class="py-2 px-3 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 text-xs font-bold rounded-xl border border-rose-500/30 transition">
                 Επαναφορά
             </button>

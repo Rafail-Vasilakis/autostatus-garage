@@ -6,39 +6,39 @@
 <div class="space-y-4">
 
     <!-- Legal Header Card -->
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="garage-card p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-white/[0.08]">
         <div>
-            <div class="flex items-center gap-2">
-                <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/30">
+            <div class="flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/30 shadow-sm">
                     <i class="fa-solid fa-building-columns"></i>
                 </span>
                 <div>
-                    <h1 class="text-base font-extrabold text-white flex items-center gap-2">
+                    <h1 class="text-base font-black text-white flex items-center gap-2">
                         Ψηφιακό Πελατολόγιο Οχημάτων
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider {% if settings.aade_env == 'production' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif settings.aade_env == 'sandbox' %}bg-sky-500/20 text-sky-400 border border-sky-500/30{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">
+                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {% if settings.aade_env == 'production' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif settings.aade_env == 'sandbox' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
                             {{ settings.aade_env }}
                         </span>
                     </h1>
                 </div>
             </div>
-            <p class="text-xs text-slate-400 mt-1">
+            <p class="text-xs text-slate-400 mt-1.5">
                 Πλήρης εναρμόνιση σε πραγματικό χρόνο (Απόφαση ΑΑΔΕ Α.1057/2025). Μηδέν πρόστιμα σε επιτόπιο έλεγχο.
             </p>
         </div>
 
         <!-- Quick Action Buttons -->
         <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <a href="/settings/aade" class="px-3 py-2 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-200 rounded-xl border border-garage-600 flex items-center gap-1.5 transition active:scale-95">
+            <a href="/settings/aade" class="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
                 <i class="fa-solid fa-gear text-amber-400"></i>
                 <span>Ρυθμίσεις API</span>
             </a>
 
-            <button onclick="quickTestConnection()" id="btnQuickTest" class="px-3 py-2 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-200 rounded-xl border border-garage-600 flex items-center gap-1.5 transition active:scale-95">
+            <button onclick="quickTestConnection()" id="btnQuickTest" class="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
                 <i class="fa-solid fa-rotate text-sky-400" id="quickTestIcon"></i>
                 <span id="quickTestText">Έλεγχος Ping</span>
             </button>
 
-            <button onclick="exportTableToCSV('aade_digital_registry.csv')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-emerald-600/20">
+            <button onclick="exportTableToCSV('aade_digital_registry.csv')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl flex items-center gap-1.5 transition shadow-md shadow-emerald-600/25">
                 <i class="fa-solid fa-file-excel"></i>
                 <span>Εξαγωγή CSV (Έλεγχος)</span>
             </button>
@@ -46,17 +46,17 @@
     </div>
 
     <!-- Search / Filter Bar -->
-    <div class="bg-garage-800 border border-garage-700 rounded-xl p-2.5 flex items-center gap-2">
+    <div class="garage-card p-3 flex items-center gap-2.5 border-white/[0.08]">
         <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs pl-2"></i>
         <input type="text" id="aadeSearchInput" onkeyup="filterAadeTable()" placeholder="Αναζήτηση με πινακίδα, όνομα πελάτη ή MARK ΑΑΔΕ..."
             class="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-mono">
     </div>
 
     <!-- The Audit Table -->
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl overflow-hidden shadow-xl">
+    <div class="garage-card overflow-hidden shadow-xl border-white/[0.08]">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs" id="aadeTable">
-                <thead class="bg-garage-900 border-b border-garage-700 text-slate-400 uppercase font-mono text-[11px]">
+                <thead class="bg-slate-950/60 border-b border-white/[0.08] text-slate-400 uppercase font-mono text-[11px]">
                     <tr>
                         <th class="py-3 px-3.5 font-bold">Πινακίδα</th>
                         <th class="py-3 px-3 font-bold">Πελάτης</th>
@@ -69,11 +69,16 @@
                         <th class="py-3 px-3 font-bold text-center">Ενέργεια</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-garage-700/60 font-sans">
+                <tbody class="divide-y divide-white/[0.06] font-sans">
                     {% for log in logs %}
-                    <tr class="hover:bg-garage-700/40 transition">
-                        <td class="py-3 px-3.5 font-mono font-black text-amber-300">
-                            {{ log.plate }}
+                    <tr class="hover:bg-white/[0.03] transition">
+                        <td class="py-3 px-3.5">
+                            <div class="eu-plate text-xs py-0 px-1 inline-flex scale-90 origin-left">
+                                <div class="eu-plate-flag">
+                                    <span class="eu-plate-code text-[7px]">GR</span>
+                                </div>
+                                <span class="eu-plate-text text-xs py-0.5 px-1.5">{{ log.plate }}</span>
+                            </div>
                         </td>
                         <td class="py-3 px-3 font-semibold text-slate-200">
                             {{ log.owner_name }}
@@ -81,10 +86,10 @@
                         <td class="py-3 px-3 text-slate-300">
                             {{ log.service_type }}
                         </td>
-                        <td class="py-3 px-3 font-mono text-slate-400 text-[11px]">
+                        <td class="py-3 px-3 font-mono text-slate-400 text-[11px] tabular-nums">
                             {{ log.entry_timestamp.strftime('%d/%m/%y %H:%M') }}
                         </td>
-                        <td class="py-3 px-3 font-mono text-[11px]">
+                        <td class="py-3 px-3 font-mono text-[11px] tabular-nums">
                             {% if log.exit_timestamp %}
                                 <span class="text-slate-400">{{ log.exit_timestamp.strftime('%d/%m/%y %H:%M') }}</span>
                             {% else %}
@@ -93,7 +98,7 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-3 font-mono font-bold text-emerald-400 text-xs">
+                        <td class="py-3 px-3 font-mono font-bold text-emerald-400 text-xs tabular-nums">
                             {% if log.aade_mark and log.aade_mark != '-' %}
                                 <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
                                     #{{ log.aade_mark }}
@@ -102,7 +107,7 @@
                                 <span class="text-slate-500 italic">Σε αναμονή</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-3 font-mono text-slate-400 text-[10px]">
+                        <td class="py-3 px-3 font-mono text-slate-400 text-[10px] tabular-nums">
                             {{ log.aade_uid }}
                         </td>
                         <td class="py-3 px-3">
@@ -120,7 +125,7 @@
                         </td>
                         <td class="py-3 px-3 text-center">
                             <button onclick="resyncAadeLog({{ log.id }}, this)" title="Επαναποστολή στο myDATA"
-                                class="p-1.5 bg-garage-700 hover:bg-garage-600 text-slate-300 hover:text-white rounded-lg border border-garage-600 transition">
+                                class="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-white/[0.08] transition">
                                 <i class="fa-solid fa-arrows-rotate text-xs"></i>
                             </button>
                         </td>

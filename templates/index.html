@@ -3,23 +3,32 @@
 {% block content %}
 <div class="space-y-4">
 
-    <!-- KPI Summary Pills -->
-    <div class="grid grid-cols-4 gap-2">
-        <div class="bg-garage-800 border border-garage-700 rounded-xl p-3 text-center">
-            <span class="text-xs text-slate-400 font-medium block">Ενεργά</span>
-            <span class="text-xl font-extrabold text-white">{{ stats.total_active }}</span>
+    <!-- KPI Summary Pills (Refined Surface & Tabular Figures) -->
+    <div class="grid grid-cols-4 gap-2 sm:gap-3">
+        <div class="garage-card p-3 text-center border-white/[0.06]">
+            <span class="text-[11px] text-slate-400 font-semibold block uppercase tracking-wider">Ενεργά</span>
+            <span class="text-xl sm:text-2xl font-black text-white tabular-nums">{{ stats.total_active }}</span>
         </div>
-        <div class="bg-garage-800 border border-blue-500/30 rounded-xl p-3 text-center">
-            <span class="text-xs text-blue-400 font-medium block">Στη Ράμπα</span>
-            <span class="text-xl font-extrabold text-blue-400">{{ stats.on_lift }}</span>
+        <div class="garage-card p-3 text-center border-blue-500/20 bg-blue-500/[0.04]">
+            <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                <span class="text-[11px] text-blue-300 font-semibold uppercase tracking-wider">Ράμπα</span>
+            </div>
+            <span class="text-xl sm:text-2xl font-black text-blue-400 tabular-nums">{{ stats.on_lift }}</span>
         </div>
-        <div class="bg-garage-800 border border-amber-500/30 rounded-xl p-3 text-center">
-            <span class="text-xs text-amber-400 font-medium block">Ανταλλακτικά</span>
-            <span class="text-xl font-extrabold text-amber-400">{{ stats.waiting_parts }}</span>
+        <div class="garage-card p-3 text-center border-amber-500/20 bg-amber-500/[0.04]">
+            <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span class="text-[11px] text-amber-300 font-semibold uppercase tracking-wider">Ανταλλακτικά</span>
+            </div>
+            <span class="text-xl sm:text-2xl font-black text-amber-400 tabular-nums">{{ stats.waiting_parts }}</span>
         </div>
-        <div class="bg-garage-800 border border-emerald-500/30 rounded-xl p-3 text-center">
-            <span class="text-xs text-emerald-400 font-medium block">Έτοιμα</span>
-            <span class="text-xl font-extrabold text-emerald-400">{{ stats.ready }}</span>
+        <div class="garage-card p-3 text-center border-emerald-500/20 bg-emerald-500/[0.04]">
+            <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span class="text-[11px] text-emerald-300 font-semibold uppercase tracking-wider">Έτοιμα</span>
+            </div>
+            <span class="text-xl sm:text-2xl font-black text-emerald-400 tabular-nums">{{ stats.ready }}</span>
         </div>
     </div>
 
@@ -27,31 +36,55 @@
     <div class="space-y-3">
         {% if orders %}
             {% for order in orders %}
-            <div class="bg-garage-800 border border-garage-700 rounded-2xl p-4 shadow-md transition relative overflow-hidden" id="order-card-{{ order.id }}">
+            <div class="garage-card garage-card-interactive p-4 sm:p-5 relative overflow-hidden" id="order-card-{{ order.id }}">
                 
-                <!-- Status Colored Accent Bar -->
-                <div class="absolute top-0 left-0 bottom-0 w-1.5 
-                    {% if order.status == 'ON_LIFT' %}bg-blue-500
-                    {% elif order.status == 'WAITING_PARTS' %}bg-amber-500
-                    {% elif order.status == 'READY' %}bg-emerald-500
+                <!-- Status Colored Glow Accent (Subtle & Elegant) -->
+                <div class="absolute top-0 left-0 bottom-0 w-1 
+                    {% if order.status == 'ON_LIFT' %}bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]
+                    {% elif order.status == 'WAITING_PARTS' %}bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]
+                    {% elif order.status == 'READY' %}bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]
                     {% else %}bg-slate-600{% endif %}">
                 </div>
 
-                <!-- Top Row: Plate, Model, Cost -->
+                <!-- Top Row: Authentic EU Plate, Model, Cost -->
                 <div class="flex items-start justify-between pl-2">
                     <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2.5 py-1 bg-slate-950 border-2 border-slate-700 text-white font-mono font-black text-lg tracking-wider rounded-lg shadow-inner">
-                                {{ order.vehicle.plate }}
-                            </span>
-                            <span class="text-xs font-semibold text-slate-300">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <!-- Authentic Greek EU License Plate -->
+                            <div class="eu-plate shadow-sm">
+                                <div class="eu-plate-flag">
+                                    <span class="eu-plate-stars">★★★★★</span>
+                                    <span class="eu-plate-code">GR</span>
+                                </div>
+                                <span class="eu-plate-text">{{ order.vehicle.plate }}</span>
+                            </div>
+
+                            <span class="text-xs font-bold text-slate-300 bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/[0.08]">
                                 {{ order.vehicle.car_model or 'Επιβατικό' }}
                             </span>
+
+                            <!-- Status Pill Badge -->
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border
+                                {% if order.status == 'ON_LIFT' %}bg-blue-500/10 border-blue-500/30 text-blue-300
+                                {% elif order.status == 'WAITING_PARTS' %}bg-amber-500/10 border-amber-500/30 text-amber-300
+                                {% elif order.status == 'READY' %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300
+                                {% else %}bg-slate-800 border-slate-700 text-slate-400{% endif %}">
+                                <span class="w-1.5 h-1.5 rounded-full 
+                                    {% if order.status == 'ON_LIFT' %}bg-blue-400 animate-pulse
+                                    {% elif order.status == 'WAITING_PARTS' %}bg-amber-400 animate-pulse
+                                    {% elif order.status == 'READY' %}bg-emerald-400
+                                    {% else %}bg-slate-500{% endif %}"></span>
+                                {{ order.status_label_el }}
+                            </span>
                         </div>
-                        <div class="text-sm font-bold text-slate-200 mt-1.5 flex items-center gap-2">
-                            <i class="fa-solid fa-user text-xs text-slate-400"></i>
-                            {{ order.vehicle.owner_name }}
-                            <a href="tel:{{ order.vehicle.owner_phone }}" class="text-xs text-amber-400 hover:underline font-mono">
+
+                        <div class="text-xs font-semibold text-slate-300 mt-2 flex items-center gap-2">
+                            <span class="text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-user text-[11px] text-slate-500"></i>
+                                {{ order.vehicle.owner_name }}
+                            </span>
+                            <span class="text-slate-600">•</span>
+                            <a href="tel:{{ order.vehicle.owner_phone }}" class="text-amber-400 hover:text-amber-300 transition font-mono flex items-center gap-1">
                                 <i class="fa-solid fa-phone text-[10px]"></i> {{ order.vehicle.owner_phone }}
                             </a>
                         </div>
@@ -60,12 +93,12 @@
                     <!-- Cost Badge & Delete Action -->
                     <div class="text-right flex items-start gap-2">
                         <div>
-                            <span class="text-xs text-slate-400 block font-medium">Σύνολο</span>
-                            <span class="text-lg font-black text-emerald-400" id="total-cost-{{ order.id }}">
+                            <span class="text-[11px] text-slate-400 block font-semibold uppercase tracking-wider">Σύνολο</span>
+                            <span class="text-lg sm:text-xl font-black text-emerald-400 tabular-nums" id="total-cost-{{ order.id }}">
                                 {{ "%.2f"|format(order.total_cost) }}€
                             </span>
                             {% if order.approved_extra_cost > 0 %}
-                            <span class="text-[10px] text-amber-300 font-semibold block">
+                            <span class="text-[10px] text-amber-300 font-semibold block tabular-nums">
                                 (+{{ "%.2f"|format(order.approved_extra_cost) }}€ έξτρα)
                             </span>
                             {% endif %}
@@ -77,12 +110,12 @@
                 </div>
 
                 <!-- Service Description & Entry Time -->
-                <div class="mt-2.5 pl-2 text-xs text-slate-300 flex items-center justify-between border-t border-garage-700/60 pt-2">
+                <div class="mt-3 pl-2 text-xs text-slate-300 flex items-center justify-between border-t border-white/[0.06] pt-2.5">
                     <span class="flex items-center gap-1.5 font-medium truncate max-w-[280px]">
                         <i class="fa-solid fa-screwdriver-wrench text-amber-400 text-xs"></i>
-                        {{ order.service_type }}
+                        <span class="text-slate-200">{{ order.service_type }}</span>
                     </span>
-                    <span class="text-slate-400 font-mono text-[11px]">
+                    <span class="text-slate-400 font-mono text-[11px] tabular-nums">
                         Είσοδος: {{ order.entry_time.strftime('%H:%M') }}
                     </span>
                 </div>
@@ -98,8 +131,8 @@
                         <div class="flex items-center gap-2">
                             <img src="{{ dam.photo_url }}" alt="Damage" class="w-10 h-10 object-cover rounded-lg border border-slate-700">
                             <div>
-                                <span class="font-bold block">{{ dam.description }}</span>
-                                <span class="text-[11px] opacity-80">+{{ "%.2f"|format(dam.extra_cost) }}€</span>
+                                <span class="font-bold block text-slate-100">{{ dam.description }}</span>
+                                <span class="text-[11px] opacity-80 tabular-nums">+{{ "%.2f"|format(dam.extra_cost) }}€</span>
                             </div>
                         </div>
                         <div>
@@ -122,43 +155,43 @@
                 </div>
                 {% endif %}
 
-                <!-- Big Tactile Status Buttons (Grease-Friendly) -->
-                <div class="mt-3 pl-2 grid grid-cols-4 gap-1.5">
+                <!-- Big Tactile Status Switchgear Buttons (Grease-Friendly) -->
+                <div class="mt-3 pl-2 grid grid-cols-4 gap-1.5 sm:gap-2">
                     <button onclick="updateOrderStatus({{ order.id }}, 'ON_LIFT')" 
-                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition active:scale-95 truncate
-                        {% if order.status == 'ON_LIFT' %}bg-blue-600 text-white shadow-md shadow-blue-600/30 border border-blue-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition truncate border
+                        {% if order.status == 'ON_LIFT' %}bg-blue-600 text-white shadow-md shadow-blue-600/30 border-blue-400{% else %}bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border-white/[0.06]{% endif %}">
                         Ράμπα
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'WAITING_PARTS')" 
-                        class="py-2.5 px-0.5 rounded-xl text-[10px] sm:text-xs font-extrabold text-center transition active:scale-95 leading-tight tracking-tight
-                        {% if order.status == 'WAITING_PARTS' %}bg-amber-600 text-white shadow-md shadow-amber-600/30 border border-amber-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
+                        class="py-2.5 px-0.5 rounded-xl text-[10px] sm:text-xs font-extrabold text-center transition leading-tight tracking-tight border
+                        {% if order.status == 'WAITING_PARTS' %}bg-amber-600 text-white shadow-md shadow-amber-600/30 border-amber-400{% else %}bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border-white/[0.06]{% endif %}">
                         Ανταλλακτικά
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'READY')" 
-                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition active:scale-95 truncate
-                        {% if order.status == 'READY' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/30 border border-emerald-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition truncate border
+                        {% if order.status == 'READY' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/30 border-emerald-400{% else %}bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border-white/[0.06]{% endif %}">
                         Έτοιμο
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'DELIVERED')" 
-                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-bold text-center bg-garage-700 text-slate-400 hover:bg-rose-900/40 hover:text-rose-300 border border-transparent active:scale-95 transition truncate">
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-bold text-center bg-slate-800/80 text-slate-400 hover:bg-rose-900/40 hover:text-rose-300 border border-white/[0.06] transition truncate">
                         Παράδοση
                     </button>
                 </div>
 
                 <!-- Footer Quick Action Buttons -->
-                <div class="mt-3 pl-2 flex items-center justify-between gap-2 border-t border-garage-700/60 pt-2.5">
+                <div class="mt-3 pl-2 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5">
                     <button onclick="openDamageModal({{ order.id }}, '{{ order.vehicle.plate }}')" 
-                        class="flex-1 py-2 px-2 bg-garage-700 hover:bg-garage-600 text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-amber-500/20 active:scale-95 transition">
+                        class="flex-1 py-2 px-2 bg-slate-800/80 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-amber-500/25 transition">
                         <i class="fa-solid fa-camera"></i>
                         <span>+ Φωτό Ζημιάς</span>
                     </button>
                     <button onclick="openMessageModal({{ order.id }})" 
-                        class="flex-1 py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-indigo-500/30 active:scale-95 transition">
+                        class="flex-1 py-2 px-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-indigo-500/30 transition">
                         <i class="fa-brands fa-viber text-sm"></i>
                         <span>Viber / SMS</span>
                     </button>
                     <a href="/track/{{ order.token }}" target="_blank" 
-                        class="py-2 px-3 bg-garage-700 hover:bg-garage-600 text-slate-300 text-xs rounded-xl flex items-center justify-center border border-garage-600 transition" title="Προβολή Tracking Οδηγού">
+                        class="py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs rounded-xl flex items-center justify-center border border-white/[0.08] transition" title="Προβολή Tracking Οδηγού">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     </a>
                 </div>
@@ -166,14 +199,15 @@
             </div>
             {% endfor %}
         {% else %}
-        <div class="bg-garage-800 border border-garage-700 rounded-2xl p-8 text-center space-y-3">
-            <div class="w-16 h-16 bg-garage-700 rounded-full flex items-center justify-center mx-auto text-amber-400 text-2xl">
+        <div class="garage-card p-10 text-center space-y-4">
+            <div class="w-16 h-16 bg-white/[0.04] border border-white/[0.08] rounded-2xl flex items-center justify-center mx-auto text-amber-400 text-2xl shadow-inner">
                 <i class="fa-solid fa-car-side"></i>
             </div>
-            <h3 class="text-base font-bold text-white">Δεν υπάρχουν αυτοκίνητα στις ράμπες</h3>
-            <p class="text-xs text-slate-400">Καταχωρήστε την πρώτη είσοδο οχήματος σε μόλις 10 δευτερόλεπτα.</p>
-            <a href="/intake" class="inline-block px-5 py-2.5 bg-amber-500 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-amber-500/20">
-                + Νέα Είσοδος Οχήματος
+            <h3 class="text-base font-extrabold text-white">Δεν υπάρχουν αυτοκίνητα στις ράμπες</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">Καταχωρήστε την πρώτη είσοδο οχήματος σε μόλις 10 δευτερόλεπτα με πλήρη ετοιμότητα ΑΑΔΕ myDATA.</p>
+            <a href="/intake" class="inline-flex items-center gap-2 px-5 py-2.5 btn-primary-glow font-black text-xs rounded-xl">
+                <i class="fa-solid fa-plus"></i>
+                <span>Νέα Είσοδος Οχήματος</span>
             </a>
         </div>
         {% endif %}
@@ -182,14 +216,14 @@
 </div>
 
 <!-- MODAL 1: Add Damage Photo & Cost Approval -->
-<div id="damageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-garage-700 pb-3">
+<div id="damageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="garage-card animate-enter-modal max-w-md w-full p-5 space-y-4 shadow-2xl border-white/[0.1]">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-3">
             <h3 class="font-extrabold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-camera text-amber-400"></i>
                 <span id="damageModalPlate">Εύρημα Ζημιάς</span>
             </h3>
-            <button onclick="closeDamageModal()" class="text-slate-400 hover:text-white text-lg">
+            <button onclick="closeDamageModal()" class="text-slate-400 hover:text-white text-lg p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -206,20 +240,20 @@
             <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">Περιγραφή Ζημιάς</label>
                 <input type="text" id="damageDescription" name="description" required placeholder="π.χ. Φαγωμένα μπροστινά τακάκια & δισκόπλακες"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">Κόστος Ανταλλακτικού + Εργασίας (€)</label>
                 <input type="number" step="0.5" id="damageCost" name="extra_cost" required placeholder="85.00"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-400">
+                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 tabular-nums">
             </div>
 
             <div class="pt-2 flex items-center gap-2">
-                <button type="button" onclick="closeDamageModal()" class="flex-1 py-2.5 bg-garage-700 text-slate-300 rounded-xl text-xs font-bold">
+                <button type="button" onclick="closeDamageModal()" class="flex-1 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold">
                     Ακύρωση
                 </button>
-                <button type="submit" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20">
+                <button type="submit" class="flex-1 py-2.5 btn-primary-glow font-black text-xs rounded-xl">
                     Αποστολή για Έγκριση
                 </button>
             </div>
@@ -228,14 +262,14 @@
 </div>
 
 <!-- MODAL 2: Viber / WhatsApp / SMS Direct Sender -->
-<div id="messageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-garage-700 pb-3">
+<div id="messageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="garage-card animate-enter-modal max-w-md w-full p-5 space-y-4 shadow-2xl border-white/[0.1]">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-3">
             <h3 class="font-extrabold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-paper-plane text-amber-400"></i>
                 <span>Ενημέρωση Πελάτη</span>
             </h3>
-            <button onclick="closeMessageModal()" class="text-slate-400 hover:text-white text-lg">
+            <button onclick="closeMessageModal()" class="text-slate-400 hover:text-white text-lg p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -248,7 +282,7 @@
                         <i class="fa-regular fa-copy"></i> Αντιγραφή
                     </button>
                 </div>
-                <div id="messagePreview" class="bg-garage-900 border border-garage-700 rounded-xl p-3 text-xs text-slate-200 leading-relaxed font-sans select-text">
+                <div id="messagePreview" class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 leading-relaxed font-sans select-text shadow-inner">
                     Φόρτωση μηνύματος...
                 </div>
             </div>
@@ -259,16 +293,16 @@
 
             <!-- 1-Click Launch Buttons -->
             <div class="grid grid-cols-1 gap-2 pt-1">
-                <a id="whatsappDirectBtn" href="#" target="_blank" class="py-3 px-4 bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-95 transition">
+                <a id="whatsappDirectBtn" href="#" target="_blank" class="py-3 px-4 bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 transition">
                     <i class="fa-brands fa-whatsapp text-lg"></i>
                     <span>Αποστολή στο WhatsApp (Απευθείας στον Αριθμό)</span>
                 </a>
                 <div class="grid grid-cols-2 gap-2">
-                    <a id="smsDirectBtn" href="#" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition">
+                    <a id="smsDirectBtn" href="#" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition">
                         <i class="fa-solid fa-comment-sms text-sm"></i>
                         <span>Αποστολή SMS</span>
                     </a>
-                    <a id="viberDirectBtn" href="#" class="py-2.5 px-3 bg-[#7360F2] hover:bg-[#6654dc] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#7360F2]/20 active:scale-95 transition">
+                    <a id="viberDirectBtn" href="#" class="py-2.5 px-3 bg-[#7360F2] hover:bg-[#6654dc] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#7360F2]/20 transition">
                         <i class="fa-brands fa-viber text-sm"></i>
                         <span>Viber</span>
                     </a>
@@ -279,8 +313,8 @@
 </div>
 
 <!-- MODAL 3: Delete Order Confirmation -->
-<div id="deleteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-garage-800 border border-garage-700 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+<div id="deleteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="garage-card animate-enter-modal max-w-sm w-full p-5 space-y-4 shadow-2xl text-center border-white/[0.1]">
         <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl border border-rose-500/30">
             <i class="fa-solid fa-trash-can"></i>
         </div>
@@ -291,7 +325,7 @@
             </p>
         </div>
         <div class="flex items-center gap-2 pt-2">
-            <button onclick="closeDeleteModal()" class="flex-1 py-2.5 bg-garage-700 text-slate-300 font-bold text-xs rounded-xl hover:bg-garage-600">
+            <button onclick="closeDeleteModal()" class="flex-1 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700">
                 Ακύρωση
             </button>
             <button id="confirmDeleteBtn" onclick="executeDeleteOrder()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-lg shadow-rose-600/30">

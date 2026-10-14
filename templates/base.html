@@ -41,44 +41,45 @@
 </head>
 <body class="bg-garage-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased select-none">
 
-    <!-- Top Navigation Bar -->
-    <header class="bg-garage-800 border-b border-garage-700 sticky top-0 z-40 shadow-lg px-4 py-3">
+    <!-- Top Navigation Bar (Glassmorphic & Tactile) -->
+    <header class="bg-slate-900/80 backdrop-blur-xl border-b border-white/[0.08] sticky top-0 z-40 px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <a href="/" class="flex items-center space-x-2 group">
-                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-md shrink-0">
-                    <i class="fa-solid fa-wrench text-sm sm:text-base"></i>
+            <a href="/" class="flex items-center space-x-2.5 group">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-[0_2px_10px_rgba(245,158,11,0.3)] shrink-0 transition group-hover:scale-105">
+                    <i class="fa-solid fa-wrench text-base"></i>
                 </div>
                 <div class="truncate">
                     <div class="flex items-center gap-1.5">
-                        <span class="font-extrabold text-base sm:text-lg tracking-tight text-white">
+                        <span class="font-black text-base sm:text-lg tracking-tight text-white">
                             Auto<span class="text-amber-400">Status</span>
                         </span>
+                        <span class="hidden sm:inline-block text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">OS</span>
                     </div>
-                    <p class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate max-w-[140px] sm:max-w-xs leading-tight">{{ aade_settings.garage_name }}</p>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate max-w-[150px] sm:max-w-xs leading-tight">{{ aade_settings.garage_name }}</p>
                 </div>
             </a>
 
             <!-- AADE Status Pill + Lock Button + Action Links -->
             <div class="flex items-center space-x-2">
-                <a href="/settings/aade" class="text-[10px] px-2 py-1 rounded-lg border font-bold uppercase tracking-wider transition hover:opacity-80 flex items-center gap-1.5 {% if aade_settings.aade_env == 'production' %}bg-emerald-500/20 text-emerald-400 border-emerald-500/30{% elif aade_settings.aade_env == 'sandbox' %}bg-sky-500/20 text-sky-400 border-sky-500/30{% else %}bg-amber-500/20 text-amber-400 border-amber-500/30{% endif %}">
-                    <span class="w-1.5 h-1.5 rounded-full {% if aade_settings.last_test_status == 'CONNECTED' %}bg-emerald-400 animate-pulse{% elif aade_settings.last_test_status == 'FAILED' %}bg-rose-400{% else %}bg-amber-400{% endif %}"></span>
-                    <span>AADE {{ aade_settings.aade_env|upper }}</span>
+                <a href="/settings/aade" class="text-[10px] px-2.5 py-1 rounded-full border font-bold uppercase tracking-wider transition hover:opacity-90 flex items-center gap-1.5 shadow-sm {% if aade_settings.aade_env == 'production' %}bg-emerald-500/15 text-emerald-400 border-emerald-500/30{% elif aade_settings.aade_env == 'sandbox' %}bg-sky-500/15 text-sky-400 border-sky-500/30{% else %}bg-amber-500/15 text-amber-400 border-amber-500/30{% endif %}">
+                    <span class="w-2 h-2 rounded-full pulse-indicator {% if aade_settings.last_test_status == 'CONNECTED' %}bg-emerald-400{% elif aade_settings.last_test_status == 'FAILED' %}bg-rose-400{% else %}bg-amber-400{% endif %}"></span>
+                    <span>myDATA {{ aade_settings.aade_env|upper }}</span>
                 </a>
 
-                <a href="/logout" title="Έξοδος στη Δημόσια Σελίδα" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-garage-700 hover:bg-garage-600 text-slate-400 hover:text-amber-400 border border-garage-600 flex items-center justify-center text-xs transition" onclick="return confirm('Έξοδος στη δημόσια σελίδα αναζήτησης πελατών;');">
+                <a href="/logout" title="Έξοδος στη Δημόσια Σελίδα" class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-400 border border-white/[0.08] flex items-center justify-center text-xs transition active:scale-95" onclick="return confirm('Έξοδος στη δημόσια σελίδα αναζήτησης πελατών;');">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 </a>
 
                 <!-- Desktop Action Links (hidden on mobile, mobile uses bottom nav) -->
                 <div class="hidden sm:flex items-center space-x-2">
-                    <a href="/aade" class="px-3 py-2 text-xs font-semibold bg-garage-700 hover:bg-garage-600 rounded-lg text-slate-200 border border-garage-600 flex items-center gap-1.5 transition">
+                    <a href="/aade" class="px-3.5 py-2 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 rounded-xl text-slate-200 border border-white/[0.08] flex items-center gap-1.5 transition active:scale-95 shadow-sm">
                         <i class="fa-solid fa-shield-halved text-emerald-400"></i>
                         <span>Πελατολόγιο ΑΑΔΕ</span>
                     </a>
-                    <a href="/settings/aade" title="Ρυθμίσεις myDATA API" class="px-2.5 py-2 text-xs font-semibold bg-garage-700 hover:bg-garage-600 rounded-lg text-slate-300 border border-garage-600 flex items-center transition">
+                    <a href="/settings/aade" title="Ρυθμίσεις myDATA API" class="px-2.5 py-2 text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 rounded-xl text-slate-300 border border-white/[0.08] flex items-center transition active:scale-95 shadow-sm">
                         <i class="fa-solid fa-gear"></i>
                     </a>
-                    <a href="/intake" class="px-3.5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition">
+                    <a href="/intake" class="px-4 py-2 text-xs font-black bg-gradient-to-tr from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 rounded-xl flex items-center gap-1.5 shadow-[0_2px_12px_rgba(245,158,11,0.35)] active:scale-95 transition">
                         <i class="fa-solid fa-camera"></i>
                         <span>+ Είσοδος (10'')</span>
                     </a>
@@ -88,27 +89,27 @@
     </header>
 
     <!-- Main View Content -->
-    <main class="flex-1 max-w-4xl w-full mx-auto p-4 pb-20">
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 pb-24">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Bottom Navigation Bar for Mobile -->
-    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-garage-800/95 backdrop-blur border-t border-garage-700 px-4 py-2 z-40 flex justify-around items-center">
-        <a href="/" class="flex flex-col items-center text-xs font-medium text-amber-400">
+    <!-- Bottom Navigation Bar for Mobile (Tactile Glass) -->
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-xl border-t border-white/[0.08] px-4 py-2 z-40 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+        <a href="/" class="flex flex-col items-center text-xs font-bold text-amber-400 py-1 transition active:scale-95">
             <i class="fa-solid fa-car text-base mb-0.5"></i>
             <span>Ράμπες</span>
         </a>
-        <a href="/intake" class="flex flex-col items-center text-xs font-medium text-slate-400 hover:text-slate-200">
-            <div class="w-9 h-9 -mt-4 bg-amber-500 rounded-full flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/30 text-base">
-                <i class="fa-solid fa-plus"></i>
+        <a href="/intake" class="flex flex-col items-center text-xs font-bold text-slate-400 hover:text-slate-200 transition active:scale-95">
+            <div class="w-11 h-11 -mt-6 bg-gradient-to-tr from-amber-500 to-amber-400 rounded-full flex items-center justify-center text-slate-950 shadow-[0_4px_16px_rgba(245,158,11,0.45)] text-lg border-2 border-slate-900">
+                <i class="fa-solid fa-plus font-black"></i>
             </div>
-            <span class="text-[10px] mt-0.5">Είσοδος</span>
+            <span class="text-[10px] mt-0.5 text-amber-300 font-bold">Είσοδος</span>
         </a>
-        <a href="/aade" class="flex flex-col items-center text-xs font-medium text-slate-400 hover:text-slate-200">
+        <a href="/aade" class="flex flex-col items-center text-xs font-semibold text-slate-400 hover:text-slate-200 py-1 transition active:scale-95">
             <i class="fa-solid fa-file-invoice text-base mb-0.5"></i>
             <span>ΑΑΔΕ</span>
         </a>
-        <a href="/settings/aade" class="flex flex-col items-center text-xs font-medium text-slate-400 hover:text-slate-200">
+        <a href="/settings/aade" class="flex flex-col items-center text-xs font-semibold text-slate-400 hover:text-slate-200 py-1 transition active:scale-95">
             <i class="fa-solid fa-gear text-base mb-0.5"></i>
             <span>Ρυθμίσεις</span>
         </a>
