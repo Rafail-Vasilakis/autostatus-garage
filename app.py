@@ -3,11 +3,15 @@ import uuid
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, send_file
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Vehicle, WorkOrder, DamageApproval, AadeRegistryLog, GarageSettings
 from aade_service import AadeClient, AADE_ENDPOINTS
 from backup_service import BackupService
 
 app = Flask(__name__)
+# Enable Cloudflare / Render reverse proxy HTTPS detection
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)

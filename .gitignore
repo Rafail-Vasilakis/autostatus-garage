@@ -1,11 +1,45 @@
+# Python & Bytecode
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+
+# Environments & Keys
 .env
 .venv/
 env/
 venv/
-backups/*.zip
-.pytest_cache/
+ENV/
+
+# Databases (Local SQLite files - should not overwrite production)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Uploaded damage photos (customer data)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Backups
+backups/*
+!backups/.gitkeep
+
+# Temporary Test Screenshots
+static/img/test_mobile_*.png
+
+# Cloudflare & Tunnel credentials
+.cloudflared/
+cert.pem
+*.tunnel-token
+tunnel-credentials.json
+
+# IDEs & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
+Thumbs.db
+desktop.ini
