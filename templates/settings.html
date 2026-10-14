@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Ρυθμίσεις myDATA ΑΑΔΕ | AutoStatus{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-5">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-amber-400"></i>
+                Ρυθμίσεις myDATA ΑΑΔΕ
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Διασύνδεση με το Ψηφιακό Πελατολόγιο & Δελτία Εισόδου (Απόφαση Α.1057/2025)
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/settings/backup" class="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 bg-garage-700 hover:bg-garage-600 rounded-xl border border-garage-600 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-database text-amber-400"></i>
+                <span>Backups</span>
+            </a>
+            <a href="/aade" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition px-2 py-1.5">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Πελατολόγιο</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Status Banner -->
+    <div id="statusBanner" class="p-4 rounded-2xl border transition duration-200 {% if settings.last_test_status == 'CONNECTED' %}bg-emerald-950/40 border-emerald-500/30{% elif settings.last_test_status == 'FAILED' %}bg-rose-950/40 border-rose-500/30{% else %}bg-garage-800 border-garage-700{% endif %}">
+        <div class="flex items-start gap-3">
+            <div id="statusIcon" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 {% if settings.last_test_status == 'CONNECTED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/40{% elif settings.last_test_status == 'FAILED' %}bg-rose-500/20 text-rose-400 border border-rose-500/40{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/40{% endif %}">
+                {% if settings.last_test_status == 'CONNECTED' %}
+                    <i class="fa-solid fa-check"></i>
+                {% elif settings.last_test_status == 'FAILED' %}
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                {% else %}
+                    <i class="fa-solid fa-plug"></i>
+                {% endif %}
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <h2 id="statusTitle" class="text-sm font-bold text-white">
+                        {% if settings.last_test_status == 'CONNECTED' %}
+                            Συνδεδεμένο & Πιστοποιημένο
+                        {% elif settings.last_test_status == 'FAILED' %}
+                            Αποτυχία Ελέγχου Σύνδεσης
+                        {% else %}
+                            Κατάσταση myDATA: Έτοιμο για Έλεγχο
+                        {% endif %}
+                    </h2>
+                    <span id="statusModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-garage-700 text-slate-300 border border-garage-600">
+                        {{ settings.aade_env }}
+                    </span>
+                </div>
+                <p id="statusDesc" class="text-xs text-slate-300 mt-1">
+                    {{ settings.last_test_message or "Πατήστε 'Έλεγχος Σύνδεσης' για να δοκιμάσετε τα στοιχεία myDATA." }}
+                </p>
+                <p id="statusTime" class="text-[11px] text-slate-400 mt-1 font-mono">
+                    Τελευταίος έλεγχος: {{ settings.last_test_date.strftime('%d/%m/%Y %H:%M') if settings.last_test_date else 'Ποτέ' }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Configuration Form -->
+    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-5 shadow-xl space-y-4">
+        
+        <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Επωνυμία Συνεργείου</label>
+            <input type="text" id="cfgGarageName" value="{{ settings.garage_name }}"
+                class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 transition"
+                placeholder="π.χ. Συνεργείο Αυτοκινήτων - Παπαδόπουλος">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">ΑΦΜ Συνεργείου</label>
+                <input type="text" id="cfgVat" value="{{ settings.vat_number }}" maxlength="9"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
+                    placeholder="094123456">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">Περιβάλλον myDATA</label>
+                <select id="cfgEnv" class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 transition">
+                    <option value="sandbox" {% if settings.aade_env == 'sandbox' %}selected{% endif %}>🧪 Sandbox (Δοκιμαστικό mydataapidev.aade.gr)</option>
+                    <option value="production" {% if settings.aade_env == 'production' %}selected{% endif %}>🚀 Live Production (Επίσημη ΑΑΔΕ)</option>
+                    <option value="simulation" {% if settings.aade_env == 'simulation' %}selected{% endif %}>💻 Προσομοίωση (Simulation / Offline Demo)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="border-t border-garage-700 pt-4 space-y-3">
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-bold text-slate-300">AADE User ID (Όνομα Χρήστη API)</label>
+                    <span class="text-[11px] text-amber-400 font-medium">Από myAADE > Ειδικοί Κωδικοί</span>
+                </div>
+                <input type="text" id="cfgUserId" value="{{ settings.aade_user_id }}"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
+                    placeholder="π.χ. autostatus_mechanic">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-bold text-slate-300">Subscription Key (Κλειδί Συνδρομής myDATA)</label>
+                    <button type="button" onclick="toggleKeyVisibility()" class="text-[11px] text-slate-400 hover:text-white">
+                        <i id="toggleKeyIcon" class="fa-solid fa-eye"></i> Προβολή
+                    </button>
+                </div>
+                <input type="password" id="cfgKey" value="{{ settings.aade_subscription_key }}"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
+                    placeholder="π.χ. e5f8c32... (32-character key)">
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 pt-3">
+            <button type="button" onclick="testAadeConnection()" id="btnTest"
+                class="w-full sm:w-1/2 py-3 px-4 bg-garage-700 hover:bg-garage-600 text-slate-100 font-bold rounded-xl border border-garage-600 flex items-center justify-center gap-2 transition active:scale-95 shadow">
+                <i class="fa-solid fa-network-wired text-amber-400"></i>
+                <span id="btnTestText">Έλεγχος Σύνδεσης (Test Ping)</span>
+            </button>
+
+            <button type="button" onclick="saveAadeSettings()" id="btnSave"
+                class="w-full sm:w-1/2 py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span id="btnSaveText">Αποθήκευση Ρυθμίσεων</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- How-To Guide Card -->
+    <div class="bg-garage-800/60 border border-garage-700/80 rounded-2xl p-4 text-xs space-y-2 text-slate-300">
+        <h3 class="font-bold text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-amber-400"></i>
+            Πώς αποκτά το συνεργείο τους κωδικούς myDATA API;
+        </h3>
+        <ol class="list-decimal list-inside space-y-1 text-slate-400 text-[11px] leading-relaxed">
+            <li>Μπαίνετε στο επίσημο portal <a href="https://www.aade.gr/mydata" target="_blank" class="text-amber-400 underline">aade.gr/myDATA</a> με τους κωδικούς Taxisnet του συνεργείου (ή το κάνει ο λογιστής σας σε 2 λεπτά).</li>
+            <li>Επιλέγετε <strong>«Εγγραφή στο myDATA REST API»</strong> για εμπορικά προγράμματα.</li>
+            <li>Αντιγράφετε το <strong>User ID</strong> και το <strong>Primary Subscription Key</strong> και τα επικολλάτε στα παραπάνω πεδία.</li>
+        </ol>
+        <p class="text-[11px] text-emerald-400/90 font-medium pt-1">
+            ✓ Μετά από αυτό, κάθε είσοδος οχήματος στο συνεργείο αποκτά αυτόματα επίσημο κωδικό καταχώρισης (UID/MARK) σε πραγματικό χρόνο!
+        </p>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleKeyVisibility() {
+        const input = document.getElementById('cfgKey');
+        const icon = document.getElementById('toggleKeyIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fa-solid fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fa-solid fa-eye';
+        }
+    }
+
+    async function testAadeConnection() {
+        const btn = document.getElementById('btnTest');
+        const btnText = document.getElementById('btnTestText');
+        const originalText = btnText.innerText;
+        
+        btn.disabled = true;
+        btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Έλεγχος...';
+
+        const payload = {
+            garage_name: document.getElementById('cfgGarageName').value,
+            vat_number: document.getElementById('cfgVat').value,
+            aade_user_id: document.getElementById('cfgUserId').value,
+            aade_subscription_key: document.getElementById('cfgKey').value,
+            aade_env: document.getElementById('cfgEnv').value
+        };
+
+        try {
+            const res = await fetch('/api/settings/aade/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            const banner = document.getElementById('statusBanner');
+            const icon = document.getElementById('statusIcon');
+            const title = document.getElementById('statusTitle');
+            const desc = document.getElementById('statusDesc');
+            const mode = document.getElementById('statusModeBadge');
+            const time = document.getElementById('statusTime');
+
+            mode.innerText = data.mode;
+            time.innerText = `Τελευταίος έλεγχος: ${data.last_test_date || 'Τώρα'}`;
+            desc.innerText = data.message;
+
+            if (data.success) {
+                banner.className = 'p-4 rounded-2xl border transition duration-200 bg-emerald-950/40 border-emerald-500/30';
+                icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                title.innerText = 'Συνδεδεμένο & Πιστοποιημένο';
+                showToast('🟢 ' + data.message, 'success');
+            } else {
+                banner.className = 'p-4 rounded-2xl border transition duration-200 bg-rose-950/40 border-rose-500/30';
+                icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 bg-rose-500/20 text-rose-400 border border-rose-500/40';
+                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                title.innerText = `Αποτυχία Ελέγχου (HTTP ${data.status_code || 'Error'})`;
+                showToast('🔴 ' + data.message, 'danger');
+            }
+        } catch (err) {
+            showToast('Σφάλμα επικοινωνίας με το σύστημα', 'danger');
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = originalText;
+        }
+    }
+
+    async function saveAadeSettings() {
+        const btn = document.getElementById('btnSave');
+        const btnText = document.getElementById('btnSaveText');
+        const originalText = btnText.innerText;
+
+        btn.disabled = true;
+        btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Αποθήκευση...';
+
+        const payload = {
+            garage_name: document.getElementById('cfgGarageName').value,
+            vat_number: document.getElementById('cfgVat').value,
+            aade_user_id: document.getElementById('cfgUserId').value,
+            aade_subscription_key: document.getElementById('cfgKey').value,
+            aade_env: document.getElementById('cfgEnv').value
+        };
+
+        try {
+            const res = await fetch('/api/settings/aade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('✓ Οι ρυθμίσεις myDATA αποθηκεύτηκαν επιτυχώς!', 'success');
+            }
+        } catch (err) {
+            showToast('Σφάλμα αποθήκευσης', 'danger');
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = originalText;
+        }
+    }
+</script>
+{% endblock %}

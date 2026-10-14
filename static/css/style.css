@@ -1,0 +1,28 @@
+/* AutoStatus Mobile-First Garage Styles */
+
+/* Ensure smooth touch interactions on mobile */
+html, body {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0B0F19;
+}
+::-webkit-scrollbar-thumb {
+    background: #1E293B;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* Large tactile button feedback */
+button:active, a:active {
+    transform: scale(0.97);
+}

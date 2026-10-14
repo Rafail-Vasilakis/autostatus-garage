@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Ψηφιακό Πελατολόγιο ΑΑΔΕ (Α.1057/2025) | AutoStatus{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+    <!-- Legal Header Card -->
+    <div class="bg-garage-800 border border-garage-700 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/30">
+                    <i class="fa-solid fa-building-columns"></i>
+                </span>
+                <div>
+                    <h1 class="text-base font-extrabold text-white flex items-center gap-2">
+                        Ψηφιακό Πελατολόγιο Οχημάτων
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider {% if settings.aade_env == 'production' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif settings.aade_env == 'sandbox' %}bg-sky-500/20 text-sky-400 border border-sky-500/30{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">
+                            {{ settings.aade_env }}
+                        </span>
+                    </h1>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+                Πλήρης εναρμόνιση σε πραγματικό χρόνο (Απόφαση ΑΑΔΕ Α.1057/2025). Μηδέν πρόστιμα σε επιτόπιο έλεγχο.
+            </p>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <a href="/settings/aade" class="px-3 py-2 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-200 rounded-xl border border-garage-600 flex items-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-gear text-amber-400"></i>
+                <span>Ρυθμίσεις API</span>
+            </a>
+
+            <button onclick="quickTestConnection()" id="btnQuickTest" class="px-3 py-2 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-200 rounded-xl border border-garage-600 flex items-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-rotate text-sky-400" id="quickTestIcon"></i>
+                <span id="quickTestText">Έλεγχος Ping</span>
+            </button>
+
+            <button onclick="exportTableToCSV('aade_digital_registry.csv')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-emerald-600/20">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Εξαγωγή CSV (Έλεγχος)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search / Filter Bar -->
+    <div class="bg-garage-800 border border-garage-700 rounded-xl p-2.5 flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs pl-2"></i>
+        <input type="text" id="aadeSearchInput" onkeyup="filterAadeTable()" placeholder="Αναζήτηση με πινακίδα, όνομα πελάτη ή MARK ΑΑΔΕ..."
+            class="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-mono">
+    </div>
+
+    <!-- The Audit Table -->
+    <div class="bg-garage-800 border border-garage-700 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs" id="aadeTable">
+                <thead class="bg-garage-900 border-b border-garage-700 text-slate-400 uppercase font-mono text-[11px]">
+                    <tr>
+                        <th class="py-3 px-3.5 font-bold">Πινακίδα</th>
+                        <th class="py-3 px-3 font-bold">Πελάτης</th>
+                        <th class="py-3 px-3 font-bold">Είδος Εργασίας</th>
+                        <th class="py-3 px-3 font-bold">Είσοδος</th>
+                        <th class="py-3 px-3 font-bold">Έξοδος</th>
+                        <th class="py-3 px-3 font-bold">Επίσημο MARK ΑΑΔΕ</th>
+                        <th class="py-3 px-3 font-bold">myDATA UID</th>
+                        <th class="py-3 px-3 font-bold">Κατάσταση</th>
+                        <th class="py-3 px-3 font-bold text-center">Ενέργεια</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-garage-700/60 font-sans">
+                    {% for log in logs %}
+                    <tr class="hover:bg-garage-700/40 transition">
+                        <td class="py-3 px-3.5 font-mono font-black text-amber-300">
+                            {{ log.plate }}
+                        </td>
+                        <td class="py-3 px-3 font-semibold text-slate-200">
+                            {{ log.owner_name }}
+                        </td>
+                        <td class="py-3 px-3 text-slate-300">
+                            {{ log.service_type }}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-slate-400 text-[11px]">
+                            {{ log.entry_timestamp.strftime('%d/%m/%y %H:%M') }}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[11px]">
+                            {% if log.exit_timestamp %}
+                                <span class="text-slate-400">{{ log.exit_timestamp.strftime('%d/%m/%y %H:%M') }}</span>
+                            {% else %}
+                                <span class="text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                    Εντός Συνεργείου
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 font-mono font-bold text-emerald-400 text-xs">
+                            {% if log.aade_mark and log.aade_mark != '-' %}
+                                <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                                    #{{ log.aade_mark }}
+                                </span>
+                            {% else %}
+                                <span class="text-slate-500 italic">Σε αναμονή</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-slate-400 text-[10px]">
+                            {{ log.aade_uid }}
+                        </td>
+                        <td class="py-3 px-3">
+                            {% if 'SYNCED' in log.sync_status or 'OK' in log.sync_status or 'TEST' in log.sync_status %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    {{ log.sync_status }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                    {{ log.sync_status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            <button onclick="resyncAadeLog({{ log.id }}, this)" title="Επαναποστολή στο myDATA"
+                                class="p-1.5 bg-garage-700 hover:bg-garage-600 text-slate-300 hover:text-white rounded-lg border border-garage-600 transition">
+                                <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterAadeTable() {
+        const input = document.getElementById('aadeSearchInput');
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById('aadeTable');
+        const tr = table.getElementsByTagName('tr');
+
+        for (let i = 1; i < tr.length; i++) {
+            const rowText = tr[i].innerText.toUpperCase();
+            if (rowText.indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+
+    async function quickTestConnection() {
+        const btn = document.getElementById('btnQuickTest');
+        const icon = document.getElementById('quickTestIcon');
+        const text = document.getElementById('quickTestText');
+        
+        btn.disabled = true;
+        icon.className = 'fa-solid fa-spinner fa-spin text-sky-400';
+        text.innerText = 'Έλεγχος...';
+
+        try {
+            const res = await fetch('/api/settings/aade/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('🟢 ' + data.message, 'success');
+            } else {
+                showToast('🔴 ' + data.message, 'danger');
+            }
+        } catch (err) {
+            showToast('Σφάλμα επικοινωνίας', 'danger');
+        } finally {
+            btn.disabled = false;
+            icon.className = 'fa-solid fa-rotate text-sky-400';
+            text.innerText = 'Έλεγχος Ping';
+        }
+    }
+
+    async function resyncAadeLog(logId, btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+
+        try {
+            const res = await fetch(`/api/aade/resync/${logId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✓ Επιτυχής αποστολή οχήματος (MARK: #${data.log.aade_mark})`, 'success');
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(`Αποτυχία: ${data.log.sync_status}`, 'danger');
+            }
+        } catch (err) {
+            showToast('Σφάλμα κατά την επαναποστολή', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+
+    function exportTableToCSV(filename) {
+        const table = document.getElementById('aadeTable');
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = [], cols = rows[i].querySelectorAll('td, th');
+            // Skip last column (Actions)
+            for (let j = 0; j < cols.length - 1; j++) {
+                let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s+)/gm, ' ');
+                data = data.replace(/"/g, '""');
+                row.push('"' + data + '"');
+            }
+            csv.push(row.join(';')); // Greek Excel friendly semicolon separator
+        }
+
+        const csvFile = new Blob(["\uFEFF" + csv.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const downloadLink = document.createElement('a');
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+</script>
+{% endblock %}
