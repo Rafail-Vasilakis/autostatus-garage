@@ -246,20 +246,25 @@ def customer_lookup():
 
 @app.route('/logout')
 def logout_view():
-    session.pop('workshop_authenticated', None)
-    resp = redirect(url_for('index'))
-    resp.set_cookie('workshop_device', '', expires=0)
+    session.clear()
+    resp = redirect(url_for('index', logged_out='1'))
+    resp.delete_cookie('workshop_device', path='/', samesite='Lax')
+    resp.set_cookie('workshop_device', '', expires=0, max_age=0, path='/', httponly=True, samesite='Lax')
     return resp
 
 
 @app.route('/api/settings/reset_devices', methods=['POST'])
 def api_reset_devices():
     settings = GarageSettings.get_settings()
-    new_sec = settings.reset_devices()
-    session['workshop_authenticated'] = new_sec
-    resp = jsonify({'success': True, 'message': 'Όλες οι παλιές συσκευές αποσυνδέθηκαν επιτυχώς!'})
-    # Keep current session active with new token
-    resp.set_cookie('workshop_device', f"terminal_{new_sec}", max_age=365*24*3600, httponly=True, samesite='Lax')
+    settings.reset_devices()
+    session.clear()
+    resp = jsonify({
+        'success': True,
+        'message': 'Όλες οι συσκευές αποσυνδέθηκαν επιτυχώς!',
+        'redirect': url_for('workshop_view', reset='1')
+    })
+    resp.delete_cookie('workshop_device', path='/', samesite='Lax')
+    resp.set_cookie('workshop_device', '', expires=0, max_age=0, path='/', httponly=True, samesite='Lax')
     return resp
 
 

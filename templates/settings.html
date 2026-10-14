@@ -154,13 +154,20 @@
                     <input type="password" maxlength="6" id="cfgPin" value="{{ settings.workshop_pin or '1234' }}"
                         class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
                         placeholder="1234">
+                    <p class="text-[10px] text-slate-500 mt-1">Απαιτείται για την πρώτη είσοδο κάθε νέας συσκευής.</p>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ακύρωση Παλιών Συσκευών</label>
-                    <button type="button" onclick="resetAllDevices()" id="btnResetDevices" class="w-full py-2.5 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 shadow">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        <span>Αποσύνδεση Όλων των Συσκευών</span>
-                    </button>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Έλεγχος Σύνδεσης & Συσκευών</label>
+                    <div class="flex flex-col gap-2">
+                        <a href="/logout" onclick="return confirm('Θέλετε να αποσυνδεθείτε από αυτή τη συσκευή και να πάτε στη δημόσια σελίδα πελατών;');" class="w-full py-2.5 px-3 bg-garage-700 hover:bg-garage-600 text-slate-200 border border-garage-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 shadow text-center">
+                            <i class="fa-solid fa-arrow-right-from-bracket text-amber-400"></i>
+                            <span>Έξοδος (Μόνο από αυτή τη συσκευή)</span>
+                        </a>
+                        <button type="button" onclick="resetAllDevices()" id="btnResetDevices" class="w-full py-2.5 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                            <i class="fa-solid fa-ban"></i>
+                            <span>Αποσύνδεση ΟΛΩΝ των Συσκευών (Reset)</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -347,19 +354,31 @@
     }
 
     async function resetAllDevices() {
-        if (!confirm('Προσοχή: Όλες οι άλλες συσκευές που έχουν συνδεθεί θα αποσυνδεθούν αμέσως και θα χρειαστεί να εισαγάγουν εκ νέου το PIN για να μπουν. Επιθυμείτε να συνεχίσετε;')) {
+        if (!confirm('Προσοχή: Όλες οι συσκευές (όλα τα κινητά, τάμπλετ, καθώς και αυτή η συσκευή) θα αποσυνδεθούν αμέσως και θα χρειαστεί το 4-ψήφιο PIN για νέα είσοδο. Επιθυμείτε να συνεχίσετε;')) {
             return;
+        }
+
+        const btn = document.getElementById('btnResetDevices');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Αποσύνδεση...';
         }
 
         try {
             const res = await fetch('/api/settings/reset_devices', { method: 'POST' });
             const data = await res.json();
             if (data.success) {
-                showToast('✓ Όλες οι παλιές συσκευές αποσυνδέθηκαν επιτυχώς!', 'success');
-                setTimeout(() => location.reload(), 1200);
+                showToast('✓ Όλες οι συσκευές αποσυνδέθηκαν επιτυχώς!', 'success');
+                setTimeout(() => {
+                    window.location.href = data.redirect || '/workshop?reset=1';
+                }, 800);
             }
         } catch (err) {
             showToast('Σφάλμα κατά την αποσύνδεση συσκευών', 'danger');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-ban"></i> <span>Αποσύνδεση ΟΛΩΝ των Συσκευών (Reset)</span>';
+            }
         }
     }
 
