@@ -89,9 +89,9 @@
             </form>
 
             <div class="mt-5 pt-4 border-t border-garage-700/80 text-center">
-                <a href="tel:2101234567" class="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-amber-400 font-bold transition">
+                <a href="tel:{{ aade_settings.phone or '2101234567' }}" class="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-amber-400 font-bold transition">
                     <i class="fa-solid fa-phone text-amber-400"></i>
-                    <span>Χρειάζεστε βοήθεια; Καλέστε το συνεργείο</span>
+                    <span>Χρειάζεστε βοήθεια; Καλέστε: {{ aade_settings.phone or 'το συνεργείο' }}</span>
                 </a>
             </div>
         </div>

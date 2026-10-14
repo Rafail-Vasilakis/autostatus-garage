@@ -33,7 +33,7 @@
             <div class="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-950 text-xl font-black mx-auto shadow-lg shadow-amber-500/20 mb-2">
                 <i class="fa-solid fa-wrench"></i>
             </div>
-            <h1 class="text-base font-extrabold text-white">Συνεργείο Αυτοκινήτων</h1>
+            <h1 class="text-base font-extrabold text-white">{{ aade_settings.garage_name }}</h1>
             <p class="text-xs text-slate-400">Ζωντανή Ενημέρωση Επισκευής & Διαφάνεια</p>
         </div>
 
@@ -170,8 +170,8 @@
 
         <!-- Direct Contact Footer -->
         <div class="text-center pt-2 pb-6 space-y-2">
-            <a href="tel:2101234567" class="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:underline font-semibold">
-                <i class="fa-solid fa-phone"></i> Χρειάζεστε διευκρίνιση; Καλέστε το συνεργείο
+            <a href="tel:{{ aade_settings.phone or '2101234567' }}" class="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:underline font-semibold">
+                <i class="fa-solid fa-phone"></i> Χρειάζεστε διευκρίνιση; Καλέστε: {{ aade_settings.phone or 'το συνεργείο' }}
             </a>
             <p class="text-[10px] text-slate-400">
                 Powered by AutoStatus • Ψηφιακό Σύστημα Επισκευών & myDATA Live

@@ -140,35 +140,60 @@ class GarageSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     garage_name = db.Column(db.String(120), default="Συνεργείο Αυτοκινήτων - Garage Pro")
     vat_number = db.Column(db.String(20), default="094123456")
+    phone = db.Column(db.String(30), default="2101234567")
+    address = db.Column(db.String(150), default="Αθήνα, Ελλάδα")
+    email = db.Column(db.String(100), default="info@garage.gr")
     aade_user_id = db.Column(db.String(100), default="workshop_test_user")
     aade_subscription_key = db.Column(db.String(150), default="demo_key_sub_2026")
     aade_env = db.Column(db.String(20), default="sandbox")  # sandbox, production, simulation
     workshop_pin = db.Column(db.String(20), default="1234")
     device_secret = db.Column(db.String(64), default="garage_terminal_sec_2026")
+    quick_services = db.Column(db.String(255), default="Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ")
     last_test_date = db.Column(db.DateTime, nullable=True)
     last_test_status = db.Column(db.String(50), default="UNVERIFIED")
     last_test_message = db.Column(db.String(255), nullable=True)
 
     @classmethod
     def get_settings(cls):
+        import os
         settings = cls.query.first()
         if not settings:
             settings = cls(
-                garage_name="Συνεργείο Αυτοκινήτων - Garage Pro",
-                vat_number="094123456",
-                aade_user_id="autostatus_workshop",
-                aade_subscription_key="demo_sandbox_key_aade_2026",
-                aade_env="sandbox",
-                workshop_pin="1234",
+                garage_name=os.environ.get('GARAGE_NAME', "Συνεργείο Αυτοκινήτων - Garage Pro"),
+                vat_number=os.environ.get('GARAGE_VAT', "094123456"),
+                phone=os.environ.get('GARAGE_PHONE', "2101234567"),
+                address=os.environ.get('GARAGE_ADDRESS', "Αθήνα, Ελλάδα"),
+                email=os.environ.get('GARAGE_EMAIL', "info@garage.gr"),
+                aade_user_id=os.environ.get('AADE_USER_ID', "autostatus_workshop"),
+                aade_subscription_key=os.environ.get('AADE_SUBSCRIPTION_KEY', "demo_sandbox_key_aade_2026"),
+                aade_env=os.environ.get('AADE_ENV', "sandbox"),
+                workshop_pin=os.environ.get('WORKSHOP_PIN', "1234"),
                 device_secret="garage_terminal_sec_2026",
+                quick_services="Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ",
                 last_test_status="READY",
                 last_test_message="Προεπιλεγμένη σύνδεση myDATA Sandbox"
             )
             db.session.add(settings)
             db.session.commit()
-        elif not settings.device_secret:
-            settings.device_secret = "garage_terminal_sec_2026"
-            db.session.commit()
+        else:
+            updated = False
+            if not getattr(settings, 'device_secret', None):
+                settings.device_secret = "garage_terminal_sec_2026"
+                updated = True
+            if not getattr(settings, 'phone', None):
+                settings.phone = os.environ.get('GARAGE_PHONE', "2101234567")
+                updated = True
+            if not getattr(settings, 'address', None):
+                settings.address = os.environ.get('GARAGE_ADDRESS', "Αθήνα, Ελλάδα")
+                updated = True
+            if not getattr(settings, 'email', None):
+                settings.email = os.environ.get('GARAGE_EMAIL', "info@garage.gr")
+                updated = True
+            if not getattr(settings, 'quick_services', None):
+                settings.quick_services = "Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ"
+                updated = True
+            if updated:
+                db.session.commit()
         return settings
 
     def reset_devices(self):
@@ -181,11 +206,15 @@ class GarageSettings(db.Model):
         return {
             'garage_name': self.garage_name,
             'vat_number': self.vat_number,
+            'phone': self.phone or '2101234567',
+            'address': self.address or 'Αθήνα, Ελλάδα',
+            'email': self.email or 'info@garage.gr',
             'aade_user_id': self.aade_user_id,
             'aade_subscription_key': self.aade_subscription_key,
             'aade_env': self.aade_env,
             'workshop_pin': self.workshop_pin or '1234',
             'device_secret': self.device_secret or 'garage_terminal_sec_2026',
+            'quick_services': self.quick_services or "Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ",
             'last_test_date': self.last_test_date.strftime('%d/%m/%Y %H:%M') if self.last_test_date else 'Δεν έχει γίνει έλεγχος',
             'last_test_status': self.last_test_status,
             'last_test_message': self.last_test_message or ''

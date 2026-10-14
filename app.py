@@ -55,8 +55,23 @@ with app.app_context():
     except Exception:
         pass
 
-    # Seed demo garage data if database is empty
-    if Vehicle.query.count() == 0:
+    for col, col_def in [
+        ('phone', "VARCHAR(30) DEFAULT '2101234567'"),
+        ('address', "VARCHAR(150) DEFAULT 'Αθήνα, Ελλάδα'"),
+        ('email', "VARCHAR(100) DEFAULT 'info@garage.gr'"),
+        ('quick_services', "VARCHAR(255) DEFAULT 'Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ'")
+    ]:
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text(f"ALTER TABLE garage_settings ADD COLUMN {col} {col_def}"))
+                conn.commit()
+        except Exception:
+            pass
+
+    # Seed demo garage data if database is empty and demo seeding is enabled
+    seed_demo = os.environ.get('SEED_DEMO_DATA', 'true').lower() in ['true', '1', 'yes']
+    if seed_demo and Vehicle.query.count() == 0:
         v1 = Vehicle(plate="ΥΝΕ-5421", owner_name="Γιώργος Παπαδόπουλος", owner_phone="6971234567", car_model="Toyota Yaris 1.3")
         v2 = Vehicle(plate="ΙΒΧ-8902", owner_name="Ελένη Κωνσταντίνου", owner_phone="6987654321", car_model="Volkswagen Golf 1.4 TSI")
         v3 = Vehicle(plate="ΖΗΤ-3310", owner_name="Δημήτρης Αντωνίου", owner_phone="6945551234", car_model="Ford Focus 1.6")
@@ -483,6 +498,14 @@ def api_aade_settings():
             settings.garage_name = data['garage_name'].strip()
         if 'vat_number' in data:
             settings.vat_number = data['vat_number'].strip()
+        if 'phone' in data:
+            settings.phone = data['phone'].strip()
+        if 'address' in data:
+            settings.address = data['address'].strip()
+        if 'email' in data:
+            settings.email = data['email'].strip()
+        if 'quick_services' in data:
+            settings.quick_services = data['quick_services'].strip()
         if 'aade_user_id' in data:
             settings.aade_user_id = data['aade_user_id'].strip()
         if 'aade_subscription_key' in data:
@@ -496,6 +519,16 @@ def api_aade_settings():
         return jsonify({'success': True, 'settings': settings.to_dict()})
 
     return jsonify({'success': True, 'settings': settings.to_dict()})
+
+
+@app.route('/api/settings/clear_demo_data', methods=['POST'])
+def api_clear_demo_data():
+    DamageApproval.query.delete()
+    AadeRegistryLog.query.delete()
+    WorkOrder.query.delete()
+    Vehicle.query.delete()
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Όλα τα δοκιμαστικά δεδομένα εκκαθαρίστηκαν επιτυχώς!'})
 
 
 @app.route('/api/settings/aade/test', methods=['POST'])

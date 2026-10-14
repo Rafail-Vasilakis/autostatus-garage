@@ -75,12 +75,19 @@
                 placeholder="π.χ. Συνεργείο Αυτοκινήτων - Παπαδόπουλος">
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1.5">ΑΦΜ Συνεργείου</label>
                 <input type="text" id="cfgVat" value="{{ settings.vat_number }}" maxlength="9"
                     class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
                     placeholder="094123456">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">Τηλέφωνο Συνεργείου</label>
+                <input type="tel" id="cfgPhone" value="{{ settings.phone or '2101234567' }}"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
+                    placeholder="210XXXXXXX ή 69XXXXXXXX">
             </div>
 
             <div>
@@ -90,6 +97,21 @@
                     <option value="production" {% if settings.aade_env == 'production' %}selected{% endif %}>🚀 Live Production (Επίσημη ΑΑΔΕ)</option>
                     <option value="simulation" {% if settings.aade_env == 'simulation' %}selected{% endif %}>💻 Προσομοίωση (Simulation / Offline Demo)</option>
                 </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">Διεύθυνση / Έδρα Συνεργείου</label>
+                <input type="text" id="cfgAddress" value="{{ settings.address or 'Αθήνα, Ελλάδα' }}"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 transition"
+                    placeholder="π.χ. Λεωφ. Κηφισίας 120, Αθήνα">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">Email Επικοινωνίας</label>
+                <input type="email" id="cfgEmail" value="{{ settings.email or 'info@garage.gr' }}"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 transition"
+                    placeholder="info@garage.gr">
             </div>
         </div>
 
@@ -194,6 +216,25 @@
         </p>
     </div>
 
+    <!-- White-Label & Clean Start Card -->
+    <div class="bg-garage-800/80 border border-garage-700 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-broom text-amber-400"></i>
+                    Καθαρή Εκκίνηση για Νέο Συνεργείο (White-Label Reset)
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                    Διαγράφει όλα τα δοκιμαστικά αυτοκίνητα και εργασίες, αφήνοντας τη βάση 100% κενή για άμεση έναρξη νέου πελατολογίου.
+                </p>
+            </div>
+            <button type="button" onclick="clearDemoData()" class="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition shrink-0 active:scale-95 shadow flex items-center justify-center gap-1.5">
+                <i class="fa-regular fa-trash-can"></i>
+                <span>Εκκαθάριση Δειγμάτων</span>
+            </button>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
@@ -278,6 +319,9 @@
         const payload = {
             garage_name: document.getElementById('cfgGarageName').value,
             vat_number: document.getElementById('cfgVat').value,
+            phone: document.getElementById('cfgPhone').value,
+            address: document.getElementById('cfgAddress').value,
+            email: document.getElementById('cfgEmail').value,
             aade_user_id: document.getElementById('cfgUserId').value,
             aade_subscription_key: document.getElementById('cfgKey').value,
             aade_env: document.getElementById('cfgEnv').value,
@@ -316,6 +360,23 @@
             }
         } catch (err) {
             showToast('Σφάλμα κατά την αποσύνδεση συσκευών', 'danger');
+        }
+    }
+
+    async function clearDemoData() {
+        if (!confirm('Προσοχή: Θα διαγραφούν όλα τα δοκιμαστικά οχήματα, οι εργασίες και τα logs για να ξεκινήσει το συνεργείο με 100% καθαρή βάση. Συνέχεια;')) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/settings/clear_demo_data', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('✓ Η βάση δεδομένων εκκαθαρίστηκε επιτυχώς!', 'success');
+                setTimeout(() => window.location.href = '/', 1200);
+            }
+        } catch (err) {
+            showToast('Σφάλμα κατά την εκκαθάριση', 'danger');
         }
     }
 
