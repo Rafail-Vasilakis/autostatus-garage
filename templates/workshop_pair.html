@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="el" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Εξουσιοδότηση Τερματικού Συνεργείου | AutoStatus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        garage: {
+                            900: '#0B0F19',
+                            800: '#151D2F',
+                            700: '#1E293B',
+                            600: '#334155',
+                            accent: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0B0F19">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-garage-900 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4 antialiased select-none">
+
+    <div class="max-w-sm w-full bg-garage-800 border border-garage-700 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+        
+        <!-- Header -->
+        <div class="text-center space-y-1">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xl mb-1 shadow-inner">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
+            <h1 class="text-lg font-black text-white">
+                Εξουσιοδότηση Συσκευής
+            </h1>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Πληκτρολογήστε το 4-ψήφιο PIN του συνεργείου <strong>μόνο μία φορά</strong>. Αυτή η συσκευή θα απομνημονευθεί μόνιμα και δεν θα σας ξαναζητηθεί PIN.
+            </p>
+        </div>
+
+        <!-- 4 PIN Dots Indicator -->
+        <div class="flex justify-center items-center gap-3 py-2" id="pinDots">
+            <div id="dot-0" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+            <div id="dot-1" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+            <div id="dot-2" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+            <div id="dot-3" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="pinError" class="{% if not error_message %}hidden{% endif %} p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-bold text-center">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> <span id="pinErrorText">{{ error_message or 'Λανθασμένο PIN. Δοκιμάστε ξανά.' }}</span>
+        </div>
+
+        <!-- Tactile Keypad -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+            <button type="button" onclick="pressDigit('1')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">1</button>
+            <button type="button" onclick="pressDigit('2')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">2</button>
+            <button type="button" onclick="pressDigit('3')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">3</button>
+
+            <button type="button" onclick="pressDigit('4')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">4</button>
+            <button type="button" onclick="pressDigit('5')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">5</button>
+            <button type="button" onclick="pressDigit('6')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">6</button>
+
+            <button type="button" onclick="pressDigit('7')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">7</button>
+            <button type="button" onclick="pressDigit('8')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">8</button>
+            <button type="button" onclick="pressDigit('9')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">9</button>
+
+            <button type="button" onclick="clearPin()" class="h-13 py-3 rounded-2xl bg-garage-900 border border-garage-700 hover:bg-garage-700 text-xs font-bold text-slate-400 active:scale-95 transition flex items-center justify-center">
+                <span>C</span>
+            </button>
+            <button type="button" onclick="pressDigit('0')" class="h-13 py-3 rounded-2xl bg-garage-700 hover:bg-garage-600 active:bg-amber-500/20 active:border-amber-400 text-xl font-black text-white transition active:scale-95 shadow border border-garage-600">0</button>
+            <button type="button" onclick="backspacePin()" class="h-13 py-3 rounded-2xl bg-garage-900 border border-garage-700 hover:bg-garage-700 text-base font-bold text-slate-300 active:scale-95 transition flex items-center justify-center">
+                <i class="fa-solid fa-delete-left"></i>
+            </button>
+        </div>
+
+        <div class="pt-2 text-center">
+            <a href="/" class="text-[11px] text-slate-500 hover:text-slate-300 transition">
+                ← Επιστροφή στην αναζήτηση πελάτη
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        let currentPin = '';
+        const maxLen = 4;
+
+        function updateDots() {
+            for (let i = 0; i < maxLen; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i < currentPin.length) {
+                    dot.className = 'w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-amber-300 shadow-md shadow-amber-400/50 scale-110 transition-all duration-150';
+                } else {
+                    dot.className = 'w-3.5 h-3.5 rounded-full border-2 border-slate-600 bg-transparent transition-all duration-150';
+                }
+            }
+        }
+
+        function pressDigit(d) {
+            if (currentPin.length < maxLen) {
+                currentPin += d;
+                updateDots();
+                hideError();
+
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(30); } catch(e) {}
+                }
+
+                if (currentPin.length === maxLen) {
+                    submitPin();
+                }
+            }
+        }
+
+        function backspacePin() {
+            if (currentPin.length > 0) {
+                currentPin = currentPin.slice(0, -1);
+                updateDots();
+                hideError();
+            }
+        }
+
+        function clearPin() {
+            currentPin = '';
+            updateDots();
+            hideError();
+        }
+
+        function hideError() {
+            const errBox = document.getElementById('pinError');
+            errBox.classList.add('hidden');
+        }
+
+        function showError(msg) {
+            const errBox = document.getElementById('pinError');
+            document.getElementById('pinErrorText').innerText = msg;
+            errBox.classList.remove('hidden');
+
+            if (navigator.vibrate) {
+                try { navigator.vibrate([100, 50, 100]); } catch(e) {}
+            }
+
+            const dots = document.getElementById('pinDots');
+            dots.classList.add('animate-pulse');
+            setTimeout(() => {
+                dots.classList.remove('animate-pulse');
+                clearPin();
+            }, 600);
+        }
+
+        async function submitPin() {
+            try {
+                const res = await fetch('/workshop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin: currentPin })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirect || '/';
+                } else {
+                    showError(data.error || 'Λανθασμένο PIN συνεργείου.');
+                }
+            } catch (err) {
+                showError('Σφάλμα σύνδεσης. Ελέγξτε το δίκτυο.');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                pressDigit(e.key);
+            } else if (e.key === 'Backspace') {
+                backspacePin();
+            } else if (e.key === 'Escape') {
+                clearPin();
+            }
+        });
+    </script>
+</body>
+</html>

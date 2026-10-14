@@ -144,6 +144,7 @@ class GarageSettings(db.Model):
     aade_subscription_key = db.Column(db.String(150), default="demo_key_sub_2026")
     aade_env = db.Column(db.String(20), default="sandbox")  # sandbox, production, simulation
     workshop_pin = db.Column(db.String(20), default="1234")
+    device_secret = db.Column(db.String(64), default="garage_terminal_sec_2026")
     last_test_date = db.Column(db.DateTime, nullable=True)
     last_test_status = db.Column(db.String(50), default="UNVERIFIED")
     last_test_message = db.Column(db.String(255), nullable=True)
@@ -159,12 +160,22 @@ class GarageSettings(db.Model):
                 aade_subscription_key="demo_sandbox_key_aade_2026",
                 aade_env="sandbox",
                 workshop_pin="1234",
+                device_secret="garage_terminal_sec_2026",
                 last_test_status="READY",
                 last_test_message="Προεπιλεγμένη σύνδεση myDATA Sandbox"
             )
             db.session.add(settings)
             db.session.commit()
+        elif not settings.device_secret:
+            settings.device_secret = "garage_terminal_sec_2026"
+            db.session.commit()
         return settings
+
+    def reset_devices(self):
+        import uuid
+        self.device_secret = uuid.uuid4().hex[:16]
+        db.session.commit()
+        return self.device_secret
 
     def to_dict(self):
         return {
@@ -174,6 +185,7 @@ class GarageSettings(db.Model):
             'aade_subscription_key': self.aade_subscription_key,
             'aade_env': self.aade_env,
             'workshop_pin': self.workshop_pin or '1234',
+            'device_secret': self.device_secret or 'garage_terminal_sec_2026',
             'last_test_date': self.last_test_date.strftime('%d/%m/%Y %H:%M') if self.last_test_date else 'Δεν έχει γίνει έλεγχος',
             'last_test_status': self.last_test_status,
             'last_test_message': self.last_test_message or ''

@@ -47,6 +47,14 @@ with app.app_context():
     except Exception:
         pass
 
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE garage_settings ADD COLUMN device_secret VARCHAR(64) DEFAULT 'garage_terminal_sec_2026'"))
+            conn.commit()
+    except Exception:
+        pass
+
     # Seed demo garage data if database is empty
     if Vehicle.query.count() == 0:
         v1 = Vehicle(plate="ΥΝΕ-5421", owner_name="Γιώργος Παπαδόπουλος", owner_phone="6971234567", car_model="Toyota Yaris 1.3")
@@ -98,32 +106,45 @@ def inject_settings():
     return dict(aade_settings=settings)
 
 
+def is_workshop_device():
+    settings = GarageSettings.get_settings()
+    current_sec = settings.device_secret or "garage_terminal_sec_2026"
+    expected_cookie = f"terminal_{current_sec}"
+    return (session.get('workshop_authenticated') == current_sec) or (request.cookies.get('workshop_device') == expected_cookie)
+
+
 @app.before_request
 def require_workshop_auth():
+    # Enforce HTTPS on Render
+    if request.headers.get('X-Forwarded-Proto') == 'http' and not request.host.startswith(('localhost', '127.0.0.1')):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
     # Public endpoints open to customers & external visitors
     exempt_endpoints = {'static', 'index', 'customer_lookup', 'track', 'decide_approval', 'workshop_view', 'logout_view'}
     if request.endpoint in exempt_endpoints or (request.endpoint is None and request.path.startswith('/static/')):
         return None
 
-    # Check if the device is verified as a workshop terminal (session or permanent device cookie)
-    is_staff = session.get('workshop_authenticated') or (request.cookies.get('workshop_device') == 'autostatus_terminal_active')
-    if is_staff:
-        session['workshop_authenticated'] = True
+    # Check if the device is verified as a workshop terminal
+    if is_workshop_device():
+        settings = GarageSettings.get_settings()
+        session['workshop_authenticated'] = settings.device_secret or "garage_terminal_sec_2026"
         return None
 
-    # Unauthorized access to management routes (intake, settings, aade, backups, management APIs)
+    # Unauthorized access to management routes
     if request.path.startswith('/api/'):
         return jsonify({'success': False, 'error': 'Πρόσβαση μόνο για το προσωπικό του συνεργείου', 'auth_required': True}), 401
-    return redirect(url_for('index'))
+    return redirect(url_for('workshop_view'))
 
 
 @app.route('/')
 def index():
-    # Check if visitor is the workshop terminal (father's phone, garage tablet, or user)
-    is_staff = session.get('workshop_authenticated') or (request.cookies.get('workshop_device') == 'autostatus_terminal_active')
+    settings = GarageSettings.get_settings()
+    current_sec = settings.device_secret or "garage_terminal_sec_2026"
 
-    if is_staff:
-        session['workshop_authenticated'] = True
+    # Authorized staff sees workshop lifts & management dashboard
+    if is_workshop_device():
+        session['workshop_authenticated'] = current_sec
         active_orders = WorkOrder.query.filter_by(is_active=True).order_by(WorkOrder.entry_time.desc()).all()
         stats = {
             'total_active': len(active_orders),
@@ -133,23 +154,62 @@ def index():
         }
         resp = make_response(render_template('index.html', orders=active_orders, stats=stats))
         # Keep device authenticated for 1 full year without requiring PIN
-        resp.set_cookie('workshop_device', 'autostatus_terminal_active', max_age=365*24*3600, httponly=True, samesite='Lax')
+        resp.set_cookie('workshop_device', f"terminal_{current_sec}", max_age=365*24*3600, httponly=True, samesite='Lax')
         return resp
 
     # Customers, guests, and strangers see ONLY the Customer Tracking Portal
     return render_template('customer_portal.html')
 
 
-@app.route('/workshop')
+@app.route('/workshop', methods=['GET', 'POST'])
 def workshop_view():
     """
-    1-Click Workshop terminal activation link for the mechanic's phone.
-    Permanently authorizes the device so the father never has to type a PIN!
+    Workshop Device Pairing:
+    - If already paired, enters dashboard directly.
+    - If not paired, requires the 4-digit PIN once.
+    - Once paired, saves 1-year cryptographic token so PIN is never asked again on this device.
     """
-    session['workshop_authenticated'] = True
-    resp = redirect(url_for('index'))
-    resp.set_cookie('workshop_device', 'autostatus_terminal_active', max_age=365*24*3600, httponly=True, samesite='Lax')
-    return resp
+    settings = GarageSettings.get_settings()
+    current_sec = settings.device_secret or "garage_terminal_sec_2026"
+    expected_cookie = f"terminal_{current_sec}"
+
+    # 1. If already paired, go straight to dashboard
+    if is_workshop_device():
+        session['workshop_authenticated'] = current_sec
+        return redirect(url_for('index'))
+
+    # 2. Check for secret master URL parameter (Magic link, e.g. /workshop?key=...)
+    master_key = request.args.get('key', '').strip()
+    if master_key and (master_key == current_sec or master_key == settings.workshop_pin):
+        session['workshop_authenticated'] = current_sec
+        resp = redirect(url_for('index'))
+        resp.set_cookie('workshop_device', expected_cookie, max_age=365*24*3600, httponly=True, samesite='Lax')
+        return resp
+
+    # 3. Handle PIN verification
+    if request.method == 'POST':
+        pin = ''
+        if request.is_json and request.json:
+            pin = str(request.json.get('pin', '')).strip()
+        else:
+            pin = str(request.form.get('pin', '')).strip()
+
+        expected_pin = str(settings.workshop_pin or '1234').strip()
+        if pin and pin == expected_pin:
+            session['workshop_authenticated'] = current_sec
+            if request.is_json:
+                resp = jsonify({'success': True, 'redirect': url_for('index')})
+            else:
+                resp = redirect(url_for('index'))
+            resp.set_cookie('workshop_device', expected_cookie, max_age=365*24*3600, httponly=True, samesite='Lax')
+            return resp
+        else:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'Λανθασμένο PIN συνεργείου'}), 401
+            return render_template('workshop_pair.html', error_message='Λανθασμένο PIN συνεργείου. Δοκιμάστε ξανά.')
+
+    # 4. Render one-time device enrollment screen
+    return render_template('workshop_pair.html')
 
 
 @app.route('/customer-lookup', methods=['POST'])
@@ -174,6 +234,17 @@ def logout_view():
     session.pop('workshop_authenticated', None)
     resp = redirect(url_for('index'))
     resp.set_cookie('workshop_device', '', expires=0)
+    return resp
+
+
+@app.route('/api/settings/reset_devices', methods=['POST'])
+def api_reset_devices():
+    settings = GarageSettings.get_settings()
+    new_sec = settings.reset_devices()
+    session['workshop_authenticated'] = new_sec
+    resp = jsonify({'success': True, 'message': 'Όλες οι παλιές συσκευές αποσυνδέθηκαν επιτυχώς!'})
+    # Keep current session active with new token
+    resp.set_cookie('workshop_device', f"terminal_{new_sec}", max_age=365*24*3600, httponly=True, samesite='Lax')
     return resp
 
 

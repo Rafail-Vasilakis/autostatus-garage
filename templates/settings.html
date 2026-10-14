@@ -117,25 +117,48 @@
             </div>
         </div>
 
-        <div class="border-t border-garage-700 pt-4">
-            <div class="flex items-center justify-between mb-1.5">
+        <div class="border-t border-garage-700 pt-4 space-y-3">
+            <div class="flex items-center justify-between">
                 <label class="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-mobile-screen text-amber-400"></i>
-                    <span>Σύνδεσμος Ενεργοποίησης Κινητού (1-Click Workshop Access)</span>
+                    <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                    <span>Ασφάλεια Συσκευών & PIN Συνεργείου</span>
                 </label>
-                <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Χωρίς PIN</span>
+                <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">PIN: {{ settings.workshop_pin or '1234' }}</span>
             </div>
-            <div class="flex items-center gap-2">
-                <input type="text" id="workshopLinkInput" readonly
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-xs text-amber-300 font-mono focus:outline-none">
-                <button type="button" onclick="copyWorkshopLink()" class="px-3.5 py-2.5 bg-garage-700 hover:bg-garage-600 border border-garage-600 rounded-xl text-xs font-bold text-white shrink-0 active:scale-95 transition flex items-center gap-1">
-                    <i class="fa-solid fa-copy"></i>
-                    <span>Αντιγραφή</span>
-                </button>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">4-ψήφιο PIN Συνεργείου</label>
+                    <input type="password" maxlength="6" id="cfgPin" value="{{ settings.workshop_pin or '1234' }}"
+                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
+                        placeholder="1234">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ακύρωση Παλιών Συσκευών</label>
+                    <button type="button" onclick="resetAllDevices()" id="btnResetDevices" class="w-full py-2.5 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Αποσύνδεση Όλων των Συσκευών</span>
+                    </button>
+                </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-1">
-                Στείλτε αυτό το link στο κινητό του πατέρα σας μία φορά. Μόλις το πατήσει και επιλέξει «Προσθήκη στην οθόνη αφετηρίας», η συσκευή συνδέεται μόνιμα χωρίς κωδικούς! Οι πελάτες βλέπουν μόνο τη σελίδα αναζήτησης.
-            </p>
+
+            <!-- Magic Link -->
+            <div class="pt-2">
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">
+                    Μυστικός Σύνδεσμος 1-Click (για αποστολή στο Viber του πατέρα σου):
+                </label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="workshopLinkInput" readonly
+                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-xs text-amber-300 font-mono focus:outline-none">
+                    <button type="button" onclick="copyWorkshopLink()" class="px-3.5 py-2.5 bg-garage-700 hover:bg-garage-600 border border-garage-600 rounded-xl text-xs font-bold text-white shrink-0 active:scale-95 transition flex items-center gap-1">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Αντιγραφή</span>
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Στείλτε αυτό το link στο κινητό του πατέρα σας. Το πατάει 1 φορά και το κινητό εξουσιοδοτείται μόνιμα χωρίς να του ζητηθεί PIN. Οι πελάτες βλέπουν μόνο τη δημόσια αναζήτηση.
+                </p>
+            </div>
         </div>
 
         <!-- Buttons -->
@@ -257,7 +280,8 @@
             vat_number: document.getElementById('cfgVat').value,
             aade_user_id: document.getElementById('cfgUserId').value,
             aade_subscription_key: document.getElementById('cfgKey').value,
-            aade_env: document.getElementById('cfgEnv').value
+            aade_env: document.getElementById('cfgEnv').value,
+            workshop_pin: document.getElementById('cfgPin').value
         };
 
         try {
@@ -268,7 +292,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                showToast('✓ Οι ρυθμίσεις myDATA αποθηκεύτηκαν επιτυχώς!', 'success');
+                showToast('✓ Οι ρυθμίσεις & το PIN αποθηκεύτηκαν επιτυχώς!', 'success');
             }
         } catch (err) {
             showToast('Σφάλμα αποθήκευσης', 'danger');
@@ -278,9 +302,26 @@
         }
     }
 
-    // Auto-populate 1-click workshop link
+    async function resetAllDevices() {
+        if (!confirm('Προσοχή: Όλες οι άλλες συσκευές που έχουν συνδεθεί θα αποσυνδεθούν αμέσως και θα χρειαστεί να εισαγάγουν εκ νέου το PIN για να μπουν. Επιθυμείτε να συνεχίσετε;')) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/settings/reset_devices', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('✓ Όλες οι παλιές συσκευές αποσυνδέθηκαν επιτυχώς!', 'success');
+                setTimeout(() => location.reload(), 1200);
+            }
+        } catch (err) {
+            showToast('Σφάλμα κατά την αποσύνδεση συσκευών', 'danger');
+        }
+    }
+
+    // Auto-populate 1-click workshop magic link
     document.addEventListener('DOMContentLoaded', () => {
-        const link = window.location.origin + '/workshop';
+        const link = window.location.origin + '/workshop?key={{ settings.device_secret }}';
         const input = document.getElementById('workshopLinkInput');
         if (input) input.value = link;
     });
@@ -289,7 +330,7 @@
         const input = document.getElementById('workshopLinkInput');
         input.select();
         navigator.clipboard.writeText(input.value);
-        showToast('✓ Ο σύνδεσμος συνεργείου αντιγράφηκε επιτυχώς!', 'success');
+        showToast('✓ Ο μυστικός σύνδεσμος συνεργείου αντιγράφηκε επιτυχώς!', 'success');
     }
 </script>
 {% endblock %}
