@@ -56,12 +56,12 @@
         </div>
         {% endif %}
 
-        <!-- 4 PIN Dots Indicator -->
+        <!-- PIN Dots Indicator (Dynamic length) -->
+        {% set pin_length = (aade_settings.workshop_pin or '1234')|length %}
         <div class="flex justify-center items-center gap-3 py-2" id="pinDots">
-            <div id="dot-0" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
-            <div id="dot-1" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
-            <div id="dot-2" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
-            <div id="dot-3" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+            {% for i in range(pin_length) %}
+            <div id="dot-{{ i }}" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all duration-150"></div>
+            {% endfor %}
         </div>
 
         <!-- Error Banner -->
@@ -102,7 +102,7 @@
 
     <script>
         let currentPin = '';
-        const maxLen = 4;
+        const maxLen = {{ pin_length }};
 
         function updateDots() {
             for (let i = 0; i < maxLen; i++) {

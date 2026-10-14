@@ -145,16 +145,27 @@
                     <i class="fa-solid fa-shield-halved text-amber-400"></i>
                     <span>Ασφάλεια Συσκευών & PIN Συνεργείου</span>
                 </label>
-                <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">PIN: {{ settings.workshop_pin or '1234' }}</span>
+                <span id="currentPinBadge" class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">PIN: {{ settings.workshop_pin or '1234' }}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">4-ψήφιο PIN Συνεργείου</label>
-                    <input type="password" maxlength="6" id="cfgPin" value="{{ settings.workshop_pin or '1234' }}"
-                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400 transition"
-                        placeholder="1234">
-                    <p class="text-[10px] text-slate-500 mt-1">Απαιτείται για την πρώτη είσοδο κάθε νέας συσκευής.</p>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-semibold text-slate-400">4-ψήφιο PIN Συνεργείου</label>
+                        <button type="button" onclick="togglePinVisibility()" class="text-[10px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition">
+                            <i id="togglePinIcon" class="fa-solid fa-eye"></i> <span id="togglePinText">Προβολή</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="password" maxlength="6" id="cfgPin" value="{{ settings.workshop_pin or '1234' }}"
+                            inputmode="numeric" pattern="[0-9]*"
+                            class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono tracking-widest focus:outline-none focus:border-amber-400 transition"
+                            placeholder="1234">
+                        <button type="button" onclick="saveQuickPin()" id="btnSavePin" class="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shrink-0 transition active:scale-95 shadow">
+                            <span id="btnSavePinText">Αποθήκευση</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">Απαιτείται για την εξουσιοδότηση νέων κινητών/τάμπλετ.</p>
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 mb-1">Έλεγχος Σύνδεσης & Συσκευών</label>
@@ -343,6 +354,9 @@
             });
             const data = await res.json();
             if (data.success) {
+                if (document.getElementById('currentPinBadge') && data.settings && data.settings.workshop_pin) {
+                    document.getElementById('currentPinBadge').innerText = 'PIN: ' + data.settings.workshop_pin;
+                }
                 showToast('✓ Οι ρυθμίσεις & το PIN αποθηκεύτηκαν επιτυχώς!', 'success');
             }
         } catch (err) {
@@ -350,6 +364,57 @@
         } finally {
             btn.disabled = false;
             btnText.innerText = originalText;
+        }
+    }
+
+    function togglePinVisibility() {
+        const input = document.getElementById('cfgPin');
+        const icon = document.getElementById('togglePinIcon');
+        const txt = document.getElementById('togglePinText');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fa-solid fa-eye-slash';
+            txt.innerText = 'Απόκρυψη';
+        } else {
+            input.type = 'password';
+            icon.className = 'fa-solid fa-eye';
+            txt.innerText = 'Προβολή';
+        }
+    }
+
+    async function saveQuickPin() {
+        const pin = document.getElementById('cfgPin').value.trim();
+        if (pin.length < 4) {
+            showToast('Το PIN πρέπει να είναι τουλάχιστον 4 ψηφία', 'danger');
+            return;
+        }
+
+        const btn = document.getElementById('btnSavePin');
+        const btnText = document.getElementById('btnSavePinText');
+        btn.disabled = true;
+        btnText.innerText = '...';
+
+        try {
+            const res = await fetch('/api/settings/aade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ workshop_pin: pin })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const newPin = (data.settings && data.settings.workshop_pin) ? data.settings.workshop_pin : pin;
+                if (document.getElementById('currentPinBadge')) {
+                    document.getElementById('currentPinBadge').innerText = 'PIN: ' + newPin;
+                }
+                showToast('✓ Το νέο PIN (' + newPin + ') αποθηκεύτηκε επιτυχώς!', 'success');
+            } else {
+                showToast('Σφάλμα αποθήκευσης PIN', 'danger');
+            }
+        } catch (e) {
+            showToast('Σφάλμα επικοινωνίας', 'danger');
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = 'Αποθήκευση';
         }
     }
 
