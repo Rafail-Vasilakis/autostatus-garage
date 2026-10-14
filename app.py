@@ -1,12 +1,13 @@
 import os
 import uuid
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, send_file, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, send_file, session, make_response
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Vehicle, WorkOrder, DamageApproval, AadeRegistryLog, GarageSettings
 from aade_service import AadeClient, AADE_ENDPOINTS
 from backup_service import BackupService
+from greek_vehicle_service import GreekVehicleService
 
 app = Flask(__name__)
 # Enable Render reverse proxy HTTPS detection
@@ -98,57 +99,81 @@ def inject_settings():
 
 @app.before_request
 def require_workshop_auth():
-    # Endpoints accessible to the public (customers & static resources)
-    exempt_endpoints = {'static', 'login_view', 'api_auth_pin', 'logout_view', 'track', 'decide_approval'}
+    # Public endpoints open to customers & external visitors
+    exempt_endpoints = {'static', 'index', 'customer_lookup', 'track', 'decide_approval', 'workshop_view', 'logout_view'}
     if request.endpoint in exempt_endpoints or (request.endpoint is None and request.path.startswith('/static/')):
         return None
 
-    # Protect all workshop dashboard, intake, settings, aade, and admin APIs
-    if not session.get('workshop_authenticated'):
-        if request.path.startswith('/api/'):
-            return jsonify({'success': False, 'error': 'Απαιτείται σύνδεση συνεργείου', 'auth_required': True}), 401
-        return redirect(url_for('login_view', next=request.path if request.path != '/' else None))
-
-
-@app.route('/login')
-def login_view():
-    if session.get('workshop_authenticated'):
-        return redirect(url_for('index'))
-    return render_template('login.html', next=request.args.get('next'))
-
-
-@app.route('/api/auth/pin', methods=['POST'])
-def api_auth_pin():
-    data = request.json or {}
-    entered_pin = str(data.get('pin', '')).strip()
-    settings = GarageSettings.get_settings()
-    expected_pin = str(settings.workshop_pin or '1234').strip()
-
-    if entered_pin == expected_pin:
-        session.permanent = True
+    # Check if the device is verified as a workshop terminal (session or permanent device cookie)
+    is_staff = session.get('workshop_authenticated') or (request.cookies.get('workshop_device') == 'autostatus_terminal_active')
+    if is_staff:
         session['workshop_authenticated'] = True
-        next_url = data.get('next') or url_for('index')
-        return jsonify({'success': True, 'redirect': next_url})
+        return None
 
-    return jsonify({'success': False, 'error': 'Λανθασμένο PIN! Δοκιμάστε ξανά.'}), 401
+    # Unauthorized access to management routes (intake, settings, aade, backups, management APIs)
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'error': 'Πρόσβαση μόνο για το προσωπικό του συνεργείου', 'auth_required': True}), 401
+    return redirect(url_for('index'))
+
+
+@app.route('/')
+def index():
+    # Check if visitor is the workshop terminal (father's phone, garage tablet, or user)
+    is_staff = session.get('workshop_authenticated') or (request.cookies.get('workshop_device') == 'autostatus_terminal_active')
+
+    if is_staff:
+        session['workshop_authenticated'] = True
+        active_orders = WorkOrder.query.filter_by(is_active=True).order_by(WorkOrder.entry_time.desc()).all()
+        stats = {
+            'total_active': len(active_orders),
+            'on_lift': sum(1 for o in active_orders if o.status == 'ON_LIFT'),
+            'waiting_parts': sum(1 for o in active_orders if o.status == 'WAITING_PARTS'),
+            'ready': sum(1 for o in active_orders if o.status == 'READY'),
+        }
+        resp = make_response(render_template('index.html', orders=active_orders, stats=stats))
+        # Keep device authenticated for 1 full year without requiring PIN
+        resp.set_cookie('workshop_device', 'autostatus_terminal_active', max_age=365*24*3600, httponly=True, samesite='Lax')
+        return resp
+
+    # Customers, guests, and strangers see ONLY the Customer Tracking Portal
+    return render_template('customer_portal.html')
+
+
+@app.route('/workshop')
+def workshop_view():
+    """
+    1-Click Workshop terminal activation link for the mechanic's phone.
+    Permanently authorizes the device so the father never has to type a PIN!
+    """
+    session['workshop_authenticated'] = True
+    resp = redirect(url_for('index'))
+    resp.set_cookie('workshop_device', 'autostatus_terminal_active', max_age=365*24*3600, httponly=True, samesite='Lax')
+    return resp
+
+
+@app.route('/customer-lookup', methods=['POST'])
+def customer_lookup():
+    """
+    Allows a customer on the public homepage to look up their car by plate.
+    Redirects strictly to their own work order tracking page without revealing other cars.
+    """
+    raw_plate = request.form.get('plate', '').strip()
+    clean_target = GreekVehicleService.normalize_plate(raw_plate).replace('-', '').replace(' ', '')
+
+    active_orders = WorkOrder.query.filter_by(is_active=True).all()
+    for wo in active_orders:
+        if wo.vehicle.plate.replace('-', '').replace(' ', '') == clean_target:
+            return redirect(url_for('track', token=wo.token))
+
+    return render_template('customer_portal.html', error_message=f"Δεν βρέθηκε ενεργή επισκευή για την πινακίδα '{raw_plate}'. Παρακαλώ ελέγξτε την πινακίδα ή καλέστε το συνεργείο.")
 
 
 @app.route('/logout')
 def logout_view():
     session.pop('workshop_authenticated', None)
-    return redirect(url_for('login_view'))
-
-
-@app.route('/')
-def index():
-    active_orders = WorkOrder.query.filter_by(is_active=True).order_by(WorkOrder.entry_time.desc()).all()
-    stats = {
-        'total_active': len(active_orders),
-        'on_lift': sum(1 for o in active_orders if o.status == 'ON_LIFT'),
-        'waiting_parts': sum(1 for o in active_orders if o.status == 'WAITING_PARTS'),
-        'ready': sum(1 for o in active_orders if o.status == 'READY'),
-    }
-    return render_template('index.html', orders=active_orders, stats=stats)
+    resp = redirect(url_for('index'))
+    resp.set_cookie('workshop_device', '', expires=0)
+    return resp
 
 
 @app.route('/intake', methods=['GET', 'POST'])
@@ -240,16 +265,18 @@ def intake():
 
 @app.route('/api/plate_lookup/<plate>')
 def plate_lookup(plate):
-    clean_plate = plate.strip().upper().replace(' ', '').replace('-', '')
+    clean_plate = GreekVehicleService.normalize_plate(plate)
+    clean_no_hyphen = clean_plate.replace('-', '').replace(' ', '')
+
     vehicles = Vehicle.query.all()
     match = None
     for v in vehicles:
-        if v.plate.replace('-', '').replace(' ', '') == clean_plate:
+        if v.plate.replace('-', '').replace(' ', '') == clean_no_hyphen:
             match = v
             break
-    if match:
-        return jsonify({'found': True, 'vehicle': match.to_dict()})
-    return jsonify({'found': False})
+
+    res = GreekVehicleService.lookup_vehicle(clean_plate, db_vehicle=match)
+    return jsonify(res)
 
 
 @app.route('/api/work_orders/<int:order_id>/status', methods=['POST'])

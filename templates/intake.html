@@ -61,9 +61,13 @@
                     class="w-full bg-slate-950 border-2 border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-2xl font-mono font-black text-amber-300 uppercase tracking-widest text-center shadow-inner focus:outline-none transition">
                 <span id="plateLookupBadge" class="absolute right-3 top-3.5 text-xs font-bold hidden"></span>
             </div>
-            <p id="lookupAlert" class="text-xs text-emerald-400 font-medium mt-1.5 hidden flex items-center gap-1">
-                <i class="fa-solid fa-circle-check"></i> <span>Βρέθηκε ιστορικό! Τα στοιχεία συμπληρώθηκαν αυτόματα.</span>
-            </p>
+            <div id="lookupAlert" class="hidden mt-2 p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold transition">
+                <div class="flex items-center gap-2">
+                    <i id="lookupAlertIcon" class="fa-solid fa-circle-check"></i>
+                    <span id="lookupAlertText"></span>
+                </div>
+                <span id="lookupAlertBadge" class="text-[10px] px-2 py-0.5 rounded font-mono uppercase"></span>
+            </div>
         </div>
 
         <!-- Customer Name & Phone -->
@@ -198,16 +202,39 @@
                     .then(res => res.json())
                     .then(data => {
                         const alertBox = document.getElementById('lookupAlert');
+                        const alertText = document.getElementById('lookupAlertText');
+                        const alertIcon = document.getElementById('lookupAlertIcon');
+                        const alertBadge = document.getElementById('lookupAlertBadge');
+
                         if (data.found) {
-                            document.getElementById('ownerNameInput').value = data.vehicle.owner_name;
-                            document.getElementById('ownerPhoneInput').value = data.vehicle.owner_phone;
-                            document.getElementById('carModelInput').value = data.vehicle.car_model;
+                            if (data.source === 'garage_history') {
+                                document.getElementById('ownerNameInput').value = data.owner_name;
+                                document.getElementById('ownerPhoneInput').value = data.owner_phone;
+                                document.getElementById('carModelInput').value = data.car_model;
+
+                                alertBox.className = 'mt-2 p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold transition bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                                alertIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+                                alertText.innerText = `✨ Γνωστός Πελάτης: ${data.owner_name}`;
+                                alertBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono uppercase bg-emerald-500/20 text-emerald-300';
+                                alertBadge.innerText = `${data.total_orders || 1} επισκέψεις`;
+                            } else if (data.source === 'open_car_registry') {
+                                document.getElementById('carModelInput').value = data.car_model;
+
+                                alertBox.className = 'mt-2 p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold transition bg-sky-500/10 border-sky-500/30 text-sky-400';
+                                alertIcon.className = 'fa-solid fa-car-side text-sky-400';
+                                alertText.innerText = `🔍 Αναγνώριση Οχήματος: ${data.car_model}`;
+                                alertBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono uppercase bg-sky-500/20 text-sky-300';
+                                alertBadge.innerText = data.region || 'Open Car';
+                            }
                             alertBox.classList.remove('hidden');
                         } else {
                             alertBox.classList.add('hidden');
                         }
+                    })
+                    .catch(err => {
+                        console.error('Plate lookup error:', err);
                     });
-            }, 300);
+            }, 250);
         }
     }
 

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="el" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Παρακολούθηση Επισκευής Οχήματος | AutoStatus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        garage: {
+                            900: '#0B0F19',
+                            800: '#151D2F',
+                            700: '#1E293B',
+                            600: '#334155',
+                            accent: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0B0F19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AutoStatus">
+    <link rel="apple-touch-icon" href="/static/img/app-icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-garage-900 text-slate-100 min-h-screen flex flex-col justify-between p-4 antialiased">
+
+    <!-- Top Branding -->
+    <header class="max-w-md w-full mx-auto pt-6 pb-2 text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 text-2xl font-black shadow-lg shadow-amber-500/20 mb-3">
+            <i class="fa-solid fa-wrench"></i>
+        </div>
+        <h1 class="text-2xl font-black tracking-tight text-white">
+            Auto<span class="text-amber-400">Status</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-1 font-medium">
+            {{ aade_settings.garage_name }}
+        </p>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold mt-2">
+            <i class="fa-solid fa-satellite-dish animate-pulse"></i>
+            <span>Ζωντανή Ενημέρωση Επισκευής myDATA</span>
+        </div>
+    </header>
+
+    <!-- Main Customer Card -->
+    <main class="max-w-md w-full mx-auto my-auto space-y-4">
+        
+        <div class="bg-garage-800/90 border border-garage-700 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur">
+            <h2 class="text-base font-extrabold text-white text-center mb-1">
+                Πού βρίσκεται το αυτοκίνητό σας;
+            </h2>
+            <p class="text-xs text-slate-300 text-center mb-5 leading-relaxed">
+                Εισάγετε τον αριθμό κυκλοφορίας (πινακίδα) για να δείτε ζωντανά την εξέλιξη των εργασιών στη ράμπα και να εγκρίνετε τυχόν ανταλλακτικά.
+            </p>
+
+            <!-- Search Form -->
+            <form action="/customer-lookup" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2">
+                        Αριθμός Κυκλοφορίας (Πινακίδα)
+                    </label>
+                    <input type="text" name="plate" id="customerPlateInput" required autofocus
+                        placeholder="π.χ. ΥΝΕ-5421"
+                        oninput="formatCustomerPlate(this)"
+                        class="w-full bg-slate-950 border-2 border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3.5 text-2xl font-mono font-black text-amber-300 uppercase tracking-widest text-center shadow-inner focus:outline-none transition">
+                </div>
+
+                {% if error_message %}
+                <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-semibold text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation shrink-0"></i>
+                    <span>{{ error_message }}</span>
+                </div>
+                {% endif %}
+
+                <button type="submit"
+                    class="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Αναζήτηση Επισκευής</span>
+                </button>
+            </form>
+
+            <div class="mt-5 pt-4 border-t border-garage-700/80 text-center">
+                <a href="tel:2101234567" class="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-amber-400 font-bold transition">
+                    <i class="fa-solid fa-phone text-amber-400"></i>
+                    <span>Χρειάζεστε βοήθεια; Καλέστε το συνεργείο</span>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer with Discreet Staff Switcher -->
+    <footer class="max-w-md w-full mx-auto text-center pt-4 pb-2 text-[11px] text-slate-400 space-y-2">
+        <p>AutoStatus Garage OS • Ψηφιακό Πελατολόγιο ΑΑΔΕ (Α.1057/2025)</p>
+        <p>
+            <a href="/workshop?setup=true" class="text-slate-400 hover:text-slate-400 underline transition">
+                Είσοδος Προσωπικού Συνεργείου
+            </a>
+        </p>
+    </footer>
+
+    <script>
+        function formatCustomerPlate(input) {
+            let val = input.value.toUpperCase().replace(/[^A-Za-zΑ-Ωα-ω0-9]/g, '');
+            if (val.length > 3 && !val.includes('-')) {
+                val = val.slice(0, 3) + '-' + val.slice(3, 7);
+            }
+            input.value = val;
+        }
+    </script>
+</body>
+</html>
