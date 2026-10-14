@@ -93,6 +93,12 @@ class BackupService:
 
         try:
             with zipfile.ZipFile(zip_filepath, 'r') as zipf:
+                # Security Check: Prevent Zip Slip path traversal (CWE-22)
+                resolved_base = os.path.abspath(temp_extract)
+                for member in zipf.infolist():
+                    member_path = os.path.abspath(os.path.join(temp_extract, member.filename))
+                    if not member_path.startswith(resolved_base + os.sep) and member_path != resolved_base:
+                        raise ValueError(f"Security error: Illegal zip entry detected ({member.filename})")
                 zipf.extractall(temp_extract)
 
             # Restore Database

@@ -3,6 +3,7 @@ import uuid
 import time
 import requests
 import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape as xml_escape
 from datetime import datetime
 
 AADE_ENDPOINTS = {
@@ -139,11 +140,18 @@ class AadeClient:
         endpoint_info = AADE_ENDPOINTS.get(self.env, AADE_ENDPOINTS['sandbox'])
         send_url = endpoint_info['send_invoices']
 
+        # Sanitize all fields against XML Injection (CWE-116)
+        safe_uid = xml_escape(str(local_uid))
+        safe_vat = xml_escape(str(self.vat_number))
+        safe_name = xml_escape(str(owner_name))
+        safe_plate = xml_escape(str(plate))
+        safe_service = xml_escape(str(service_type))
+
         # Δημιουργία XML δελτίου (Type 9.3: Δελτίο Αποστολής / Εισόδου Οχήματος χωρίς αξία)
         xml_payload = f"""<?xml version="1.0" encoding="UTF-8"?>
 <InvoicesDoc xmlns="http://www.aade.gr/myDATA/invoice/v1.0">
   <invoice>
-    <uid>{local_uid}</uid>
+    <uid>{safe_uid}</uid>
     <invoiceHeader>
       <series>ΕΙΣ</series>
       <aa>{order_id or 1}</aa>
@@ -152,12 +160,12 @@ class AadeClient:
       <currency>EUR</currency>
     </invoiceHeader>
     <issuer>
-      <vatNumber>{self.vat_number}</vatNumber>
+      <vatNumber>{safe_vat}</vatNumber>
       <country>GR</country>
       <branch>0</branch>
     </issuer>
     <counterpart>
-      <name>{owner_name}</name>
+      <name>{safe_name}</name>
       <country>GR</country>
       <address>
         <city>ΕΛΛΑΔΑ</city>
@@ -170,8 +178,8 @@ class AadeClient:
       <vatAmount>0.00</vatAmount>
     </invoiceDetails>
     <otherDeliveryDetails>
-      <vehicleNumber>{plate}</vehicleNumber>
-      <purpose>Επισκευή - {service_type}</purpose>
+      <vehicleNumber>{safe_plate}</vehicleNumber>
+      <purpose>Επισκευή - {safe_service}</purpose>
       <loadingAddress>Συνεργείο</loadingAddress>
       <deliveryAddress>Συνεργείο</deliveryAddress>
     </otherDeliveryDetails>

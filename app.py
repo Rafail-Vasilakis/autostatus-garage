@@ -9,8 +9,15 @@ from aade_service import AadeClient, AADE_ENDPOINTS
 from backup_service import BackupService
 
 app = Flask(__name__)
-# Enable Cloudflare / Render reverse proxy HTTPS detection
+# Enable Render reverse proxy HTTPS detection
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
@@ -217,10 +224,18 @@ def add_damage(order_id):
 
     photo_url = "/static/img/brake_disc_demo.jpg"  # default fallback
     if photo_file and photo_file.filename != '':
-        filename = secure_filename(f"damage_{order_id}_{uuid.uuid4().hex[:6]}.jpg")
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        photo_file.save(filepath)
-        photo_url = f"/static/uploads/{filename}"
+        try:
+            from PIL import Image
+            img = Image.open(photo_file.stream)
+            img.verify()
+            photo_file.seek(0)
+
+            filename = secure_filename(f"damage_{order_id}_{uuid.uuid4().hex[:6]}.jpg")
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            photo_file.save(filepath)
+            photo_url = f"/static/uploads/{filename}"
+        except Exception:
+            return jsonify({'success': False, 'error': 'Invalid image file. Only valid images allowed.'}), 400
 
     dam = DamageApproval(
         work_order=wo,
@@ -244,6 +259,12 @@ def track(token):
 @app.route('/api/approvals/<int:approval_id>/decide', methods=['POST'])
 def decide_approval(approval_id):
     approval = DamageApproval.query.get_or_404(approval_id)
+    req_token = request.json.get('token') if request.json else None
+
+    # IDOR Check: Ensure request token matches the work order
+    if not req_token or req_token != approval.work_order.token:
+        return jsonify({'success': False, 'error': 'Unauthorized: invalid order token'}), 403
+
     decision = request.json.get('decision')  # 'APPROVED' or 'REJECTED'
     if decision in ['APPROVED', 'REJECTED']:
         approval.status = decision

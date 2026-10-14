@@ -189,7 +189,7 @@
             fetch(`/api/approvals/${approvalId}/decide`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ decision: decision })
+                body: JSON.stringify({ decision: decision, token: '{{ order.token }}' })
             })
             .then(res => res.json())
             .then(data => {

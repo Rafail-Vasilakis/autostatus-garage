@@ -4,36 +4,55 @@ __pycache__/
 *$py.class
 *.so
 
-# Environments & Keys
+# Environments & Secrets
 .env
+.env.*
+!.env.example
 .venv/
 env/
 venv/
 ENV/
 
-# Databases (Local SQLite files - should not overwrite production)
+# Private Keys, Certificates & Tokens
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+*.token
+credentials.json
+secrets.json
+
+# Databases (Local SQLite files - never commit local data)
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
 
-# Uploaded damage photos (customer data)
+# Uploaded damage photos (customer private data)
 static/uploads/*
 !static/uploads/.gitkeep
 
-# Backups
+# Workshop Backup Archives
 backups/*
 !backups/.gitkeep
+*.zip
+*.tar.gz
+
+# Logs & Temp files
+*.log
+logs/
+*.tmp
+*.bak
 
 # Temporary Test Screenshots
 static/img/test_mobile_*.png
 
-# Cloudflare & Tunnel credentials
-.cloudflared/
-cert.pem
-*.tunnel-token
-tunnel-credentials.json
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # IDEs & OS Files
 .vscode/
