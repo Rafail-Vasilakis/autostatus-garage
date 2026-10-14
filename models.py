@@ -140,7 +140,7 @@ class GarageSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     garage_name = db.Column(db.String(120), default="Συνεργείο Αυτοκινήτων - Garage Pro")
     vat_number = db.Column(db.String(20), default="094123456")
-    phone = db.Column(db.String(30), default="2101234567")
+    phone = db.Column(db.String(30), default="210 285 1201")
     address = db.Column(db.String(150), default="Αθήνα, Ελλάδα")
     email = db.Column(db.String(100), default="info@garage.gr")
     aade_user_id = db.Column(db.String(100), default="workshop_test_user")
@@ -161,7 +161,7 @@ class GarageSettings(db.Model):
             settings = cls(
                 garage_name=os.environ.get('GARAGE_NAME', "Συνεργείο Αυτοκινήτων - Garage Pro"),
                 vat_number=os.environ.get('GARAGE_VAT', "094123456"),
-                phone=os.environ.get('GARAGE_PHONE', "2101234567"),
+                phone=os.environ.get('GARAGE_PHONE', "210 285 1201"),
                 address=os.environ.get('GARAGE_ADDRESS', "Αθήνα, Ελλάδα"),
                 email=os.environ.get('GARAGE_EMAIL', "info@garage.gr"),
                 aade_user_id=os.environ.get('AADE_USER_ID', "autostatus_workshop"),
@@ -181,7 +181,7 @@ class GarageSettings(db.Model):
                 settings.device_secret = "garage_terminal_sec_2026"
                 updated = True
             if not getattr(settings, 'phone', None):
-                settings.phone = os.environ.get('GARAGE_PHONE', "2101234567")
+                settings.phone = os.environ.get('GARAGE_PHONE', "210 285 1201")
                 updated = True
             if not getattr(settings, 'address', None):
                 settings.address = os.environ.get('GARAGE_ADDRESS', "Αθήνα, Ελλάδα")
@@ -206,7 +206,7 @@ class GarageSettings(db.Model):
         return {
             'garage_name': self.garage_name,
             'vat_number': self.vat_number,
-            'phone': self.phone or '2101234567',
+            'phone': self.phone or '210 285 1201',
             'address': self.address or 'Αθήνα, Ελλάδα',
             'email': self.email or 'info@garage.gr',
             'aade_user_id': self.aade_user_id,

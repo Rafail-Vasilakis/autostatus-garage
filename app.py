@@ -56,7 +56,7 @@ with app.app_context():
         pass
 
     for col, col_def in [
-        ('phone', "VARCHAR(30) DEFAULT '2101234567'"),
+        ('phone', "VARCHAR(30) DEFAULT '210 285 1201'"),
         ('address', "VARCHAR(150) DEFAULT 'Αθήνα, Ελλάδα'"),
         ('email', "VARCHAR(100) DEFAULT 'info@garage.gr'"),
         ('quick_services', "VARCHAR(255) DEFAULT 'Τακτικό Service / Λάδια,Φρένα / Τακάκια,Διαγνωστικός Έλεγχος,Προετοιμασία ΚΤΕΟ'")

@@ -170,8 +170,8 @@
 
         <!-- Direct Contact Footer -->
         <div class="text-center pt-2 pb-6 space-y-2">
-            <a href="tel:{{ aade_settings.phone or '2101234567' }}" class="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:underline font-semibold">
-                <i class="fa-solid fa-phone"></i> Χρειάζεστε διευκρίνιση; Καλέστε: {{ aade_settings.phone or 'το συνεργείο' }}
+            <a href="tel:{{ (aade_settings.phone or '210 285 1201').replace(' ', '') }}" class="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:underline font-semibold">
+                <i class="fa-solid fa-phone"></i> Χρειάζεστε διευκρίνιση; Καλέστε: {{ aade_settings.phone or '210 285 1201' }}
             </a>
             <p class="text-[10px] text-slate-400">
                 Powered by AutoStatus • Ψηφιακό Σύστημα Επισκευών & myDATA Live
