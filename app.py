@@ -8,6 +8,7 @@ from models import db, Vehicle, WorkOrder, DamageApproval, AadeRegistryLog, Gara
 from aade_service import AadeClient, AADE_ENDPOINTS
 from backup_service import BackupService
 from greek_vehicle_service import GreekVehicleService
+from registration_doc_service import RegistrationDocService
 
 app = Flask(__name__)
 # Enable Render reverse proxy HTTPS detection
@@ -276,6 +277,20 @@ def plate_lookup(plate):
             break
 
     res = GreekVehicleService.lookup_vehicle(clean_plate, db_vehicle=match)
+    return jsonify(res)
+
+
+@app.route('/api/aade/afm_lookup/<afm>')
+def api_afm_lookup(afm):
+    res = RegistrationDocService.lookup_afm_data(afm)
+    return jsonify(res)
+
+
+@app.route('/api/ocr/parse_registration', methods=['POST'])
+def api_parse_registration():
+    data = request.json or {}
+    raw_text = data.get('text', '')
+    res = RegistrationDocService.parse_ocr_text(raw_text)
     return jsonify(res)
 
 

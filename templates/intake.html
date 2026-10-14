@@ -18,14 +18,27 @@
 
     <!-- Camera Plate Scanner Viewfinder (Collapsible/Toggle) -->
     <div class="bg-garage-800 border border-garage-700 rounded-2xl p-4 shadow-xl space-y-3">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span class="text-xs font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <i class="fa-solid fa-camera text-amber-400"></i>
-                Σκανάρισμα Πινακίδας με Κάμερα
+                Αυτόματη Αναγνώριση
             </span>
-            <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-2.5 py-1 bg-garage-700 text-xs font-bold text-slate-300 rounded-lg border border-garage-600 hover:bg-garage-600">
-                Άνοιγμα Κάμερας
-            </button>
+            <div class="flex items-center gap-2">
+                <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-2.5 py-1.5 bg-garage-700 hover:bg-garage-600 text-xs font-bold text-slate-300 rounded-xl border border-garage-600 flex items-center gap-1">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Κάμερα Πινακίδας</span>
+                </button>
+                <button type="button" onclick="document.getElementById('registrationFileInput').click()" class="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    <span>📄 Σκανάρισμα Άδειας (OCR)</span>
+                </button>
+                <input type="file" id="registrationFileInput" accept="image/*" capture="environment" onchange="handleRegistrationFile(this)" class="hidden">
+            </div>
+        </div>
+
+        <div id="ocrProgressBanner" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-spinner fa-spin text-amber-400"></i>
+            <span id="ocrProgressText">Ανάγνωση Άδειας Κυκλοφορίας με OCR...</span>
         </div>
 
         <div id="cameraContainer" class="relative rounded-xl overflow-hidden bg-slate-950 border border-garage-700 hidden aspect-video flex items-center justify-center">
@@ -70,18 +83,50 @@
             </div>
         </div>
 
-        <!-- Customer Name & Phone -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Ονοματεπώνυμο Πελάτη *</label>
-                <input type="text" id="ownerNameInput" name="owner_name" required placeholder="π.χ. Γιώργος Παπαδόπουλος"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+        <!-- Customer Name & Phone with Contacts Picker -->
+        <div class="space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Στοιχεία Πελάτη *</span>
+                <button type="button" onclick="selectFromContacts()" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
+                    <i class="fa-solid fa-address-book"></i>
+                    <span>📱 Από Επαφές Κινητού</span>
+                </button>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Κινητό Τηλέφωνο (Viber/SMS) *</label>
-                <input type="tel" id="ownerPhoneInput" name="owner_phone" required placeholder="69XXXXXXXX"
-                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ονοματεπώνυμο *</label>
+                    <input type="text" id="ownerNameInput" name="owner_name" required placeholder="π.χ. Γιώργος Παπαδόπουλος"
+                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Κινητό Τηλέφωνο (Viber/SMS) *</label>
+                    <input type="tel" id="ownerPhoneInput" name="owner_phone" required placeholder="69XXXXXXXX"
+                        class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-400">
+                </div>
             </div>
+        </div>
+
+        <!-- AADE AFM Lookup for Invoice / Legal Name -->
+        <div class="p-3 bg-garage-900/60 border border-garage-700/80 rounded-xl space-y-1.5">
+            <div class="flex items-center justify-between">
+                <label class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                    <i class="fa-solid fa-building text-amber-400"></i>
+                    <span>ΑΦΜ Πελάτη (προαιρετικό για τιμολόγιο & αυτόματη εύρεση)</span>
+                </label>
+                <span class="text-[10px] text-slate-400 font-mono">myDATA Live</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="text" id="afmInput" maxlength="9" placeholder="π.χ. 090000045 (9 ψηφία)"
+                    class="w-full bg-garage-900 border border-garage-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+                <button type="button" onclick="lookupAfm()" id="btnAfmLookup"
+                    class="px-3.5 py-2 bg-garage-700 hover:bg-garage-600 border border-garage-600 text-amber-400 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 active:scale-95 transition shadow">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span id="btnAfmText">Εύρεση ΑΑΔΕ</span>
+                </button>
+            </div>
+            <p id="afmLookupStatus" class="text-[11px] text-emerald-400 font-semibold hidden flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> <span id="afmLookupStatusText"></span>
+            </p>
         </div>
 
         <!-- Car Model & Service Type -->
@@ -140,10 +185,36 @@
 
     </form>
 
+    <!-- Contacts Fallback / Quick Paste Modal -->
+    <div id="contactsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-garage-800 border border-garage-700 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-address-book text-amber-400"></i>
+                    Επαφές Κινητού
+                </span>
+                <button type="button" onclick="closeContactsModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Η άμεση επιλογή από το ευρετήριο υποστηρίζεται αυτόματα όταν ανοίγετε το σύστημα από κινητό (Chrome / Android).
+            </p>
+            <div class="p-3 bg-garage-900 border border-garage-700 rounded-xl space-y-2">
+                <label class="text-[11px] font-bold text-slate-400 block">Γρήγορη Επικόλληση (Όνομα & Τηλέφωνο):</label>
+                <input type="text" id="quickPasteContact" placeholder="π.χ. Γιώργος Παπαδόπουλος 6912345678" class="w-full bg-garage-800 border border-garage-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+                <button type="button" onclick="applyQuickContact()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition active:scale-95">
+                    Εφαρμογή Στοιχείων
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
     let videoStream = null;
 
@@ -154,7 +225,7 @@
 
         if (container.classList.contains('hidden')) {
             container.classList.remove('hidden');
-            btn.innerText = 'Κλείσιμο Κάμερας';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> <span>Κλείσιμο Κάμερας</span>';
             navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
                 .then(stream => {
                     videoStream = stream;
@@ -165,7 +236,7 @@
                 });
         } else {
             container.classList.add('hidden');
-            btn.innerText = 'Άνοιγμα Κάμερας';
+            btn.innerHTML = '<i class="fa-solid fa-camera"></i> <span>Κάμερα Πινακίδας</span>';
             if (videoStream) {
                 videoStream.getTracks().forEach(t => t.stop());
                 videoStream = null;
@@ -240,6 +311,216 @@
 
     function setServiceType(val) {
         document.getElementById('serviceTypeInput').value = val;
+    }
+
+    // 📱 1. Contacts Picker API
+    async function selectFromContacts() {
+        if ('contacts' in navigator && 'ContactsManager' in window) {
+            try {
+                const props = ['name', 'tel'];
+                const contacts = await navigator.contacts.select(props, { multiple: false });
+                if (contacts && contacts.length > 0) {
+                    const c = contacts[0];
+                    if (c.name && c.name.length > 0) {
+                        document.getElementById('ownerNameInput').value = c.name[0];
+                    }
+                    if (c.tel && c.tel.length > 0) {
+                        let phone = c.tel[0].replace(/[^0-9+]/g, '');
+                        if (phone.startsWith('+30')) phone = phone.slice(3);
+                        if (phone.startsWith('0030')) phone = phone.slice(4);
+                        document.getElementById('ownerPhoneInput').value = phone;
+                    }
+                }
+            } catch (err) {
+                console.warn('Contacts picker cancelled or failed:', err);
+            }
+        } else {
+            document.getElementById('contactsModal').classList.remove('hidden');
+        }
+    }
+
+    function closeContactsModal() {
+        document.getElementById('contactsModal').classList.add('hidden');
+    }
+
+    function applyQuickContact() {
+        const raw = (document.getElementById('quickPasteContact').value || '').trim();
+        if (!raw) return;
+
+        // Try to match a Greek phone number (starts with 69 or 2, 10 digits)
+        const phoneMatch = raw.match(/(?:(?:\+?30)?)?([26]\d{9})/);
+        if (phoneMatch) {
+            document.getElementById('ownerPhoneInput').value = phoneMatch[1];
+        }
+
+        // Remainder or alphabetic parts as name
+        const namePart = raw.replace(/(?:(?:\+?30)?)?[26]\d{9}/, '').replace(/[\+\-\(\)]/g, '').trim();
+        if (namePart) {
+            document.getElementById('ownerNameInput').value = namePart;
+        }
+
+        closeContactsModal();
+    }
+
+    // 🔍 2. AADE AFM Lookup
+    function lookupAfm() {
+        const afm = (document.getElementById('afmInput').value || '').trim().replace(/\D/g, '');
+        if (!afm || afm.length !== 9) {
+            alert('Παρακαλώ εισάγετε ένα έγκυρο 9-ψήφιο ΑΦΜ.');
+            return;
+        }
+
+        const btnText = document.getElementById('btnAfmText');
+        const origText = btnText.innerText;
+        btnText.innerText = 'Έλεγχος...';
+
+        fetch(`/api/aade/afm_lookup/${encodeURIComponent(afm)}`)
+            .then(r => r.json())
+            .then(data => {
+                btnText.innerText = origText;
+                if (data.success) {
+                    document.getElementById('ownerNameInput').value = data.legal_name;
+                    const statusBox = document.getElementById('afmLookupStatus');
+                    const statusText = document.getElementById('afmLookupStatusText');
+                    statusBox.classList.remove('hidden');
+                    statusText.innerText = `${data.legal_name} (${data.doy || 'ΑΑΔΕ'})`;
+                } else {
+                    alert(data.error || 'Δεν βρέθηκε επωνυμία για αυτό το ΑΦΜ.');
+                }
+            })
+            .catch(err => {
+                btnText.innerText = origText;
+                console.error('AFM lookup error:', err);
+                alert('Σφάλμα σύνδεσης με την υπηρεσία ελέγχου ΑΦΜ.');
+            });
+    }
+
+    // 📄 3. Registration Document (Άδεια Κυκλοφορίας) OCR Scanner
+    function preprocessImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxDim = 1500;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    
+                    // Grayscale conversion for higher contrast OCR
+                    try {
+                        const imgData = ctx.getImageData(0, 0, w, h);
+                        const d = imgData.data;
+                        for (let i = 0; i < d.length; i += 4) {
+                            const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+                            d[i] = gray;
+                            d[i+1] = gray;
+                            d[i+2] = gray;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                    } catch (e) {
+                        // Ignore canvas security errors if any
+                    }
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function handleRegistrationFile(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const banner = document.getElementById('ocrProgressBanner');
+        const textEl = document.getElementById('ocrProgressText');
+        banner.classList.remove('hidden');
+        textEl.innerText = 'Προετοιμασία εικόνας άδειας...';
+
+        try {
+            const processedDataUrl = await preprocessImage(file);
+            textEl.innerText = 'Ανάγνωση κειμένου με Tesseract OCR...';
+
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα.');
+            }
+
+            const result = await Tesseract.recognize(
+                processedDataUrl,
+                'ell+eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const pct = Math.round((m.progress || 0) * 100);
+                            textEl.innerText = `Ανάγνωση Άδειας (OCR)... ${pct}%`;
+                        }
+                    }
+                }
+            );
+
+            const extractedText = (result && result.data && result.data.text) ? result.data.text : '';
+            textEl.innerText = 'Εξαγωγή στοιχείων οχήματος & κατόχου...';
+
+            const resp = await fetch('/api/ocr/parse_registration', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: extractedText })
+            });
+            const data = await resp.json();
+
+            banner.classList.add('hidden');
+
+            if (data.success) {
+                let populated = [];
+                if (data.plate) {
+                    document.getElementById('plateInput').value = data.plate;
+                    handlePlateInput(document.getElementById('plateInput'));
+                    populated.push(`Πινακίδα: ${data.plate}`);
+                }
+                if (data.owner_name) {
+                    document.getElementById('ownerNameInput').value = data.owner_name;
+                    populated.push(`Όνομα: ${data.owner_name}`);
+                }
+                if (data.afm) {
+                    document.getElementById('afmInput').value = data.afm;
+                    lookupAfm();
+                    populated.push(`ΑΦΜ: ${data.afm}`);
+                }
+                if (data.car_model) {
+                    document.getElementById('carModelInput').value = data.car_model;
+                    populated.push(`Μοντέλο: ${data.car_model}`);
+                }
+
+                if (populated.length > 0) {
+                    alert(`✅ Επιτυχής αναγνώριση στοιχείων άδειας:\n\n• ${populated.join('\n• ')}`);
+                } else {
+                    alert('Δεν ήταν δυνατή η αυτόματη αναγνώριση των πεδίων. Παρακαλώ ελέγξτε τη φωτεινότητα ή συμπληρώστε χειροκίνητα.');
+                }
+            } else {
+                alert('Δεν εντοπίστηκαν στοιχεία στην εικόνα: ' + (data.error || ''));
+            }
+        } catch (err) {
+            console.error('OCR Processing error:', err);
+            banner.classList.add('hidden');
+            alert('Σφάλμα κατά την ανάγνωση της άδειας: ' + err.message);
+        } finally {
+            input.value = '';
+        }
     }
 </script>
 {% endblock %}
