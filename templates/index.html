@@ -125,23 +125,23 @@
                 <!-- Big Tactile Status Buttons (Grease-Friendly) -->
                 <div class="mt-3 pl-2 grid grid-cols-4 gap-1.5">
                     <button onclick="updateOrderStatus({{ order.id }}, 'ON_LIFT')" 
-                        class="py-2.5 px-1 rounded-xl text-xs font-extrabold text-center transition active:scale-95
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition active:scale-95 truncate
                         {% if order.status == 'ON_LIFT' %}bg-blue-600 text-white shadow-md shadow-blue-600/30 border border-blue-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
                         Ράμπα
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'WAITING_PARTS')" 
-                        class="py-2.5 px-1 rounded-xl text-xs font-extrabold text-center transition active:scale-95
+                        class="py-2.5 px-0.5 rounded-xl text-[10px] sm:text-xs font-extrabold text-center transition active:scale-95 leading-tight tracking-tight
                         {% if order.status == 'WAITING_PARTS' %}bg-amber-600 text-white shadow-md shadow-amber-600/30 border border-amber-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
                         Ανταλλακτικά
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'READY')" 
-                        class="py-2.5 px-1 rounded-xl text-xs font-extrabold text-center transition active:scale-95
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-center transition active:scale-95 truncate
                         {% if order.status == 'READY' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/30 border border-emerald-400{% else %}bg-garage-700 text-slate-400 hover:bg-garage-600 border border-transparent{% endif %}">
                         Έτοιμο
                     </button>
                     <button onclick="updateOrderStatus({{ order.id }}, 'DELIVERED')" 
-                        class="py-2.5 px-1 rounded-xl text-xs font-bold text-center bg-garage-700 text-slate-400 hover:bg-rose-900/40 hover:text-rose-300 border border-transparent active:scale-95 transition">
-                        Παραδόθηκε
+                        class="py-2.5 px-0.5 rounded-xl text-[11px] sm:text-xs font-bold text-center bg-garage-700 text-slate-400 hover:bg-rose-900/40 hover:text-rose-300 border border-transparent active:scale-95 transition truncate">
+                        Παράδοση
                     </button>
                 </div>
 
