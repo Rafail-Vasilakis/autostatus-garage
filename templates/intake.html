@@ -383,16 +383,34 @@
 
     function parseAndFillContact(raw) {
         if (!raw) return;
-        // Search for 10-digit Greek phone (mobile 69... or landline 2...)
-        const phoneMatch = raw.match(/(?:(?:\+?30)?)?([26]\d{9})/);
-        if (phoneMatch) {
-            document.getElementById('ownerPhoneInput').value = phoneMatch[1];
+        
+        // Strip out non-digits to find the phone number
+        const digitsOnly = raw.replace(/\D/g, '');
+        let foundPhone = '';
+        
+        // Look for Greek mobile (69...) or landline (2...) with 10 digits
+        if (digitsOnly.length === 10 && (digitsOnly.startsWith('69') || digitsOnly.startsWith('2'))) {
+            foundPhone = digitsOnly;
+        } else if (digitsOnly.length === 12 && digitsOnly.startsWith('30') && (digitsOnly[2] === '6' || digitsOnly[2] === '2')) {
+            foundPhone = digitsOnly.slice(2);
+        } else if (digitsOnly.length === 14 && digitsOnly.startsWith('0030') && (digitsOnly[4] === '6' || digitsOnly[4] === '2')) {
+            foundPhone = digitsOnly.slice(4);
+        } else {
+            // Find embedded 10-digit number
+            const m = digitsOnly.match(/([26]\d{9})/);
+            if (m) foundPhone = m[1];
+        }
+
+        if (foundPhone) {
+            document.getElementById('ownerPhoneInput').value = foundPhone;
             flashInputSuccess(document.getElementById('ownerPhoneInput'));
         }
 
         // Remainder text without the phone number as customer name
-        const cleanName = raw.replace(/(?:(?:\+?30)?)?[26]\d{9}/, '').replace(/[\+\-\(\):]/g, '').trim();
-        if (cleanName && cleanName.length > 1) {
+        const cleanName = raw.replace(/(?:\+?30)?[\s\-\.\(\)]*([26][\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d[\s\-\.]*\d)/g, '')
+                             .replace(/[\+\-\(\):]/g, '')
+                             .trim();
+        if (cleanName && cleanName.length > 1 && !/^\d+$/.test(cleanName)) {
             document.getElementById('ownerNameInput').value = cleanName;
             flashInputSuccess(document.getElementById('ownerNameInput'));
         }
