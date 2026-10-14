@@ -87,10 +87,16 @@
         <div class="space-y-2">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Στοιχεία Πελάτη *</span>
-                <button type="button" onclick="selectFromContacts()" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
-                    <i class="fa-solid fa-address-book"></i>
-                    <span>📱 Από Επαφές Κινητού</span>
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="pasteFromClipboard()" title="Αυτόματη επικόλληση αριθμού ή ονόματος από αντιγραφή" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-slate-200 hover:text-white border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow">
+                        <i class="fa-solid fa-paste text-amber-400"></i>
+                        <span>📋 Επικόλληση</span>
+                    </button>
+                    <button type="button" onclick="selectFromContacts()" title="Επιλογή απευθείας από το ευρετήριο επαφών κινητού" class="px-2.5 py-1 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-garage-600 rounded-lg text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow">
+                        <i class="fa-solid fa-address-book"></i>
+                        <span>📱 Επαφές</span>
+                    </button>
+                </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -191,17 +197,23 @@
             <div class="flex items-center justify-between">
                 <span class="text-sm font-extrabold text-white flex items-center gap-2">
                     <i class="fa-solid fa-address-book text-amber-400"></i>
-                    Επαφές Κινητού
+                    Εισαγωγή Στοιχείων Πελάτη
                 </span>
                 <button type="button" onclick="closeContactsModal()" class="text-slate-400 hover:text-white text-lg">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <p class="text-xs text-slate-300 leading-relaxed">
-                Η άμεση επιλογή από το ευρετήριο υποστηρίζεται αυτόματα όταν ανοίγετε το σύστημα από κινητό (Chrome / Android).
+                Σε <strong>Android (Chrome)</strong> το κουμπί ανοίγει απευθείας το ευρετήριο του τηλεφώνου. Σε iPhone ή Υπολογιστή, πατήστε «Αυτόματη Επικόλληση» για να διαβάσει το αντεγραμμένο τηλέφωνο ή όνομα από Viber/SMS.
             </p>
+            <div>
+                <button type="button" onclick="pasteFromClipboard()" class="w-full py-2.5 bg-garage-700 hover:bg-garage-600 text-amber-400 border border-amber-400/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow">
+                    <i class="fa-solid fa-paste"></i>
+                    <span>📋 Αυτόματη Επικόλληση από Αντιγραφή</span>
+                </button>
+            </div>
             <div class="p-3 bg-garage-900 border border-garage-700 rounded-xl space-y-2">
-                <label class="text-[11px] font-bold text-slate-400 block">Γρήγορη Επικόλληση (Όνομα & Τηλέφωνο):</label>
+                <label class="text-[11px] font-bold text-slate-400 block">Χειροκίνητη Επικόλληση / Πληκτρολόγηση:</label>
                 <input type="text" id="quickPasteContact" placeholder="π.χ. Γιώργος Παπαδόπουλος 6912345678" class="w-full bg-garage-800 border border-garage-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
                 <button type="button" onclick="applyQuickContact()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition active:scale-95">
                     Εφαρμογή Στοιχείων
@@ -313,53 +325,95 @@
         document.getElementById('serviceTypeInput').value = val;
     }
 
-    // 📱 1. Contacts Picker API
+    // 📱 1. Contacts Picker API & 📋 Clipboard Paste
     async function selectFromContacts() {
-        if ('contacts' in navigator && 'ContactsManager' in window) {
+        // Feature detection for Web Contacts API (Chrome on Android)
+        if ('contacts' in navigator && typeof navigator.contacts.select === 'function') {
             try {
-                const props = ['name', 'tel'];
+                let props = ['name', 'tel'];
+                if ('getProperties' in navigator.contacts) {
+                    try {
+                        const supported = await navigator.contacts.getProperties();
+                        props = props.filter(p => supported.includes(p));
+                    } catch (e) {}
+                }
+                if (props.length === 0) props = ['name', 'tel'];
+
                 const contacts = await navigator.contacts.select(props, { multiple: false });
                 if (contacts && contacts.length > 0) {
                     const c = contacts[0];
-                    if (c.name && c.name.length > 0) {
+                    if (c.name && c.name.length > 0 && c.name[0]) {
                         document.getElementById('ownerNameInput').value = c.name[0];
                     }
-                    if (c.tel && c.tel.length > 0) {
+                    if (c.tel && c.tel.length > 0 && c.tel[0]) {
                         let phone = c.tel[0].replace(/[^0-9+]/g, '');
                         if (phone.startsWith('+30')) phone = phone.slice(3);
                         if (phone.startsWith('0030')) phone = phone.slice(4);
                         document.getElementById('ownerPhoneInput').value = phone;
                     }
+                    flashInputSuccess(document.getElementById('ownerPhoneInput'));
+                    return;
                 }
             } catch (err) {
-                console.warn('Contacts picker cancelled or failed:', err);
+                console.warn('Contacts picker error:', err);
+                if (err.name === 'AbortError') return; // User tapped back/cancel
             }
-        } else {
-            document.getElementById('contactsModal').classList.remove('hidden');
         }
+        // Fallback for browsers / devices where Contact Picker is unavailable (iPhone, Desktop, etc.)
+        document.getElementById('contactsModal').classList.remove('hidden');
+    }
+
+    async function pasteFromClipboard() {
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim()) {
+                    parseAndFillContact(text.trim());
+                    closeContactsModal();
+                    return;
+                }
+            }
+        } catch (err) {
+            console.warn('Clipboard read error:', err);
+        }
+        // If automatic clipboard read was blocked by browser security, open modal
+        document.getElementById('contactsModal').classList.remove('hidden');
+        document.getElementById('quickPasteContact').focus();
+    }
+
+    function parseAndFillContact(raw) {
+        if (!raw) return;
+        // Search for 10-digit Greek phone (mobile 69... or landline 2...)
+        const phoneMatch = raw.match(/(?:(?:\+?30)?)?([26]\d{9})/);
+        if (phoneMatch) {
+            document.getElementById('ownerPhoneInput').value = phoneMatch[1];
+            flashInputSuccess(document.getElementById('ownerPhoneInput'));
+        }
+
+        // Remainder text without the phone number as customer name
+        const cleanName = raw.replace(/(?:(?:\+?30)?)?[26]\d{9}/, '').replace(/[\+\-\(\):]/g, '').trim();
+        if (cleanName && cleanName.length > 1) {
+            document.getElementById('ownerNameInput').value = cleanName;
+            flashInputSuccess(document.getElementById('ownerNameInput'));
+        }
+    }
+
+    function applyQuickContact() {
+        const raw = (document.getElementById('quickPasteContact').value || '').trim();
+        if (raw) {
+            parseAndFillContact(raw);
+        }
+        closeContactsModal();
     }
 
     function closeContactsModal() {
         document.getElementById('contactsModal').classList.add('hidden');
     }
 
-    function applyQuickContact() {
-        const raw = (document.getElementById('quickPasteContact').value || '').trim();
-        if (!raw) return;
-
-        // Try to match a Greek phone number (starts with 69 or 2, 10 digits)
-        const phoneMatch = raw.match(/(?:(?:\+?30)?)?([26]\d{9})/);
-        if (phoneMatch) {
-            document.getElementById('ownerPhoneInput').value = phoneMatch[1];
-        }
-
-        // Remainder or alphabetic parts as name
-        const namePart = raw.replace(/(?:(?:\+?30)?)?[26]\d{9}/, '').replace(/[\+\-\(\)]/g, '').trim();
-        if (namePart) {
-            document.getElementById('ownerNameInput').value = namePart;
-        }
-
-        closeContactsModal();
+    function flashInputSuccess(el) {
+        if (!el) return;
+        el.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-500/30');
+        setTimeout(() => el.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-500/30'), 1500);
     }
 
     // 🔍 2. AADE AFM Lookup
@@ -374,24 +428,32 @@
         const origText = btnText.innerText;
         btnText.innerText = 'Έλεγχος...';
 
+        const statusBox = document.getElementById('afmLookupStatus');
+        const statusText = document.getElementById('afmLookupStatusText');
+
         fetch(`/api/aade/afm_lookup/${encodeURIComponent(afm)}`)
             .then(r => r.json())
             .then(data => {
                 btnText.innerText = origText;
                 if (data.success) {
                     document.getElementById('ownerNameInput').value = data.legal_name;
-                    const statusBox = document.getElementById('afmLookupStatus');
-                    const statusText = document.getElementById('afmLookupStatusText');
+                    flashInputSuccess(document.getElementById('ownerNameInput'));
+                    statusBox.className = 'text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-1';
                     statusBox.classList.remove('hidden');
-                    statusText.innerText = `${data.legal_name} (${data.doy || 'ΑΑΔΕ'})`;
+                    const badge = data.source === 'aade_registry' ? 'Live myDATA' : 'Έγκυρο Μητρώο ΑΑΔΕ';
+                    statusText.innerText = `✨ ${data.legal_name} • ${data.doy || 'ΔΟΥ'} (${badge})`;
                 } else {
-                    alert(data.error || 'Δεν βρέθηκε επωνυμία για αυτό το ΑΦΜ.');
+                    statusBox.className = 'text-[11px] text-rose-400 font-semibold flex items-center gap-1 mt-1';
+                    statusBox.classList.remove('hidden');
+                    statusText.innerText = `⚠️ ${data.error || 'Δεν βρέθηκαν στοιχεία για αυτό το ΑΦΜ.'}`;
                 }
             })
             .catch(err => {
                 btnText.innerText = origText;
                 console.error('AFM lookup error:', err);
-                alert('Σφάλμα σύνδεσης με την υπηρεσία ελέγχου ΑΦΜ.');
+                statusBox.className = 'text-[11px] text-rose-400 font-semibold flex items-center gap-1 mt-1';
+                statusBox.classList.remove('hidden');
+                statusText.innerText = '⚠️ Σφάλμα επικοινωνίας με την υπηρεσία ελέγχου ΑΦΜ.';
             });
     }
 
