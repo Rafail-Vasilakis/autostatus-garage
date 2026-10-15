@@ -299,51 +299,53 @@
 
     function extractPlateFromText(rawText) {
         if (!rawText) return null;
-        const clean = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ');
+        let text = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ');
 
-        // 1. Strict pattern: 3 valid Greek/Latin letters + 4 digits (1000-9999, never starting with 0)
-        const strictRegex = new RegExp(`\\b([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})\\b`);
-        const match = clean.match(strictRegex);
-        if (match) {
-            return `${normalizeToGreekPlate(match[1])}-${match[2]}`;
+        // 1. Strict & relaxed regex matching 3 Greek/Latin letters + separator + 4 digits
+        // - Handles blue European band artifacts at start ('GR', 'GB', 'G', 'B', '#')
+        // - Handles seal/coat of arms and dash noise in the middle ('=', ':', '-', '_', '•', '©', '®', '*', '°', '~', '.')
+        // - Accepts any 4 digits (0000 to 9999)
+        const pattern = new RegExp(`(?:GR|GB|G|B|#)?\\s*([${VALID_GREEK_CHARS}]{3})[ \\-_=:\\.©®•*~°]*([0-9]{4})`);
+        const m = text.match(pattern);
+        if (m) {
+            return `${normalizeToGreekPlate(m[1])}-${m[2]}`;
         }
 
         // 2. Token-level analysis handling OCR confusion (0->O, 1->I, 8->B for letters, O->0, I->1, B->8, S->5 for digits)
-        const words = clean.split(/\s+/).filter(w => w.length >= 3);
-        for (let i = 0; i < words.length; i++) {
-            const w1 = words[i].replace(/[^A-ZΑ-Ω0-9]/g, '');
+        const tokens = text.split(/[^A-ZΑ-Ω0-9]+/).filter(t => t.length >= 3);
+        for (let i = 0; i < tokens.length; i++) {
+            let t1 = tokens[i];
+            // If leading 'GR' or 'GB' was glued: e.g. 'GRAAA' -> 'AAA'
+            if (t1.length > 3 && (t1.startsWith('GR') || t1.startsWith('GB'))) {
+                t1 = t1.slice(2);
+            } else if (t1.length === 4 && (t1.startsWith('G') || t1.startsWith('B') || t1.startsWith('E'))) {
+                t1 = t1.slice(1);
+            }
 
-            // Case A: Combined 7-char token (e.g. YNE5421 or ΥΝΕ-5421)
-            if (w1.length === 7) {
-                let letPart = w1.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
-                let digPart = w1.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+            // Case A: Combined 7-char token (e.g. YNE5421 or AAA0000)
+            if (t1.length === 7) {
+                let letPart = t1.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
+                let digPart = t1.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
 
                 const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
-                if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
+                if (validLetters && /^[0-9]{4}$/.test(digPart)) {
                     return `${normalizeToGreekPlate(letPart)}-${digPart}`;
                 }
             }
 
-            // Case B: Two consecutive tokens (e.g. "YNE" "5421")
-            if (i + 1 < words.length) {
-                const w2 = words[i + 1].replace(/[^A-ZΑ-Ω0-9]/g, '');
-                if (w1.length === 3 && w2.length === 4) {
-                    let letPart = w1.replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
-                    let digPart = w2.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+            // Case B: Two consecutive tokens (e.g. "AAA" "0000" or "YNE" "5421")
+            if (i + 1 < tokens.length) {
+                let t2 = tokens[i + 1];
+                if (t1.length === 3 && t2.length === 4) {
+                    let letPart = t1.replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
+                    let digPart = t2.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
 
                     const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
-                    if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
+                    if (validLetters && /^[0-9]{4}$/.test(digPart)) {
                         return `${normalizeToGreekPlate(letPart)}-${digPart}`;
                     }
                 }
             }
-        }
-
-        // 3. Relaxed boundary match (handles plates attached to other characters)
-        const relaxedRegex = new RegExp(`([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})`);
-        const matchRel = clean.match(relaxedRegex);
-        if (matchRel) {
-            return `${normalizeToGreekPlate(matchRel[1])}-${matchRel[2]}`;
         }
 
         return null;
@@ -467,8 +469,9 @@
     }
 
     // Preprocessor specifically for Plate Photos:
-    // Focuses on the center region (70% width, 40% height) where the plate is framed,
-    // exactly like the live camera viewfinder, cutting out bumper & headlights.
+    // - Fills white background for transparent PNGs
+    // - Automatically skips center crop if the image is already a close-up plate (aspect ratio >= 2.0)
+    // - Enhances contrast for high legibility
     function preprocessPlatePhoto(file, cropCenter = true) {
         return new Promise((resolve, reject) => {
             if (!file) {
@@ -482,10 +485,14 @@
                     const canvas = document.createElement('canvas');
                     let sx = 0, sy = 0, sw = img.width, sh = img.height;
 
-                    if (cropCenter) {
-                        // Focus crop on center 70% width, 40% height where user points camera at plate
-                        sw = Math.round(img.width * 0.70);
-                        sh = Math.round(img.height * 0.40);
+                    // If the image is already an elongated rectangle (aspect ratio >= 2.0),
+                    // it is already a cropped license plate, so NEVER crop the center!
+                    const isAlreadyPlate = (img.width / img.height) >= 2.0;
+
+                    if (cropCenter && !isAlreadyPlate) {
+                        // Focus crop on center 75% width, 45% height where user points camera at plate
+                        sw = Math.round(img.width * 0.75);
+                        sh = Math.round(img.height * 0.45);
                         sx = Math.round((img.width - sw) / 2);
                         sy = Math.round((img.height - sh) / 2);
                     }
@@ -501,6 +508,10 @@
                         resolve(e.target.result);
                         return;
                     }
+                    // Solid white background for transparent PNGs
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, targetW, targetH);
+
                     // High contrast black-on-white plate optimization
                     ctx.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
                     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
@@ -514,28 +525,46 @@
         });
     }
 
-    // Run OCR on an image DataURL and return extracted Greek license plate
+    // Reusable single-block worker for ultra-fast plate recognition (PSM 6)
+    let plateWorker = null;
+
     async function scanPlateDataUrl(imageDataUrl, minPct = 20, maxPct = 90) {
         if (typeof Tesseract === 'undefined') {
             throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα. Ελέγξτε τη σύνδεση.');
         }
 
-        const result = await Tesseract.recognize(
-            imageDataUrl,
-            'eng',
-            {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        const prog = Math.round((m.progress || 0) * 100);
-                        const scaled = minPct + Math.round((prog / 100) * (maxPct - minPct));
-                        setOcrStatus('loading', 'Αναγνώριση Πινακίδας...', scaled);
+        const logger = m => {
+            if (m.status === 'recognizing text') {
+                const prog = Math.round((m.progress || 0) * 100);
+                const scaled = minPct + Math.round((prog / 100) * (maxPct - minPct));
+                setOcrStatus('loading', 'Αναγνώριση Πινακίδας...', scaled);
+            }
+        };
+
+        let rawText = '';
+        try {
+            if (!plateWorker) {
+                plateWorker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        if (window._activeOcrLogger) window._activeOcrLogger(m);
                     }
+                });
+                if (plateWorker.setParameters) {
+                    await plateWorker.setParameters({
+                        tessedit_pageseg_mode: Tesseract.PSM ? Tesseract.PSM.SINGLE_BLOCK : '6'
+                    });
                 }
             }
-        );
+            window._activeOcrLogger = logger;
+            const res = await plateWorker.recognize(imageDataUrl);
+            rawText = (res && res.data && res.data.text) ? res.data.text : '';
+        } catch (workerErr) {
+            console.warn('Worker error, fallback to standard recognize:', workerErr);
+            const result = await Tesseract.recognize(imageDataUrl, 'eng', { logger });
+            rawText = (result && result.data && result.data.text) ? result.data.text : '';
+        }
 
-        const rawText = (result && result.data && result.data.text) ? result.data.text : '';
-        console.log('Plate OCR text candidate:', rawText);
+        console.log('Plate OCR raw candidate:', rawText);
         return extractPlateFromText(rawText);
     }
 
@@ -560,6 +589,8 @@
         canvas.width = cropW;
         canvas.height = cropH;
         const context = canvas.getContext('2d');
+        context.fillStyle = '#FFFFFF';
+        context.fillRect(0, 0, cropW, cropH);
         context.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
         context.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
@@ -597,15 +628,15 @@
         setOcrStatus('loading', 'Επεξεργασία φωτογραφίας πινακίδας...', 10);
 
         try {
-            // Step 1: Center-crop first (exactly like the live camera box, cuts out car headlights & dealer frames)
-            const centerCropUrl = await preprocessPlatePhoto(file, true);
-            let foundPlate = await scanPlateDataUrl(centerCropUrl, 15, 60);
+            // Step 1: Scan image directly (handles standalone plate images & vector graphics)
+            const fullPhotoUrl = await preprocessPlatePhoto(file, false);
+            let foundPlate = await scanPlateDataUrl(fullPhotoUrl, 15, 60);
 
-            // Step 2: Fallback to full image scan if plate wasn't in center
+            // Step 2: If not found, try center crop (useful for wide photos of a car where plate is in the middle)
             if (!foundPlate) {
-                setOcrStatus('loading', 'Ευρεία αναζήτηση πινακίδας...', 65);
-                const fullPhotoUrl = await preprocessPlatePhoto(file, false);
-                foundPlate = await scanPlateDataUrl(fullPhotoUrl, 70, 95);
+                setOcrStatus('loading', 'Εστίαση στο κέντρο της εικόνας...', 65);
+                const centerCropUrl = await preprocessPlatePhoto(file, true);
+                foundPlate = await scanPlateDataUrl(centerCropUrl, 70, 95);
             }
 
             if (foundPlate) {
