@@ -309,51 +309,83 @@
 
     function extractPlateFromText(rawText) {
         if (!rawText) return null;
-        const clean = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ');
+        let text = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ');
 
-        // 1. Strict pattern: 3 valid Greek/Latin letters + 4 digits (1000-9999, never starting with 0)
-        const strictRegex = new RegExp(`\\b([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})\\b`);
-        const match = clean.match(strictRegex);
-        if (match) {
-            return `${normalizeToGreekPlate(match[1])}-${match[2]}`;
-        }
+        // 1. Clean screw/bracket artifacts before Z (e.g. (MT, [MT, IMT, \LMT, (NT -> ZMT)
+        text = text.replace(/[\(\[\{\\\/\|\<]?\s*I?MT/g, 'ZMT');
+        text = text.replace(/[\(\[\{\\\/\|\<]?\s*I?NT/g, 'ZMT');
 
-        // 2. Token-level analysis handling OCR confusion (0->O, 1->I, 8->B for letters, O->0, I->1, B->8, S->5 for digits)
-        const words = clean.split(/\s+/).filter(w => w.length >= 3);
-        for (let i = 0; i < words.length; i++) {
-            const w1 = words[i].replace(/[^A-ZΑ-Ω0-9]/g, '');
+        // 2. Strip Euroband prefix artifacts if separated by space/dash: EB, GB, GR, M-, B-, 8-
+        text = text.replace(/\b(EB|GB|GR)\b[\s\-\=]*/g, ' ');
+        text = text.replace(/\b[MB8]\-([A-ZΑ-Ω]{3})/g, '$1');
 
-            // Case A: Combined 7-char token (e.g. YNE5421 or ΥΝΕ-5421)
-            if (w1.length === 7) {
-                let letPart = w1.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
-                let digPart = w1.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+        // 3. Normalize common delimiters (screw heads, KTEO stickers, dashes) to spaces
+        text = text.replace(/[\=\-\°\*\~\_\:\;\,\.]+/g, ' ');
 
-                const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
-                if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
+        const tokens = text.split(/[^A-ZΑ-Ω0-9]+/).filter(Boolean);
+
+        // Strategy 1: Combined token of 7-9 characters (e.g. BANH4981, 1BH29920, 1BH9920, ANH4981)
+        for (let tok of tokens) {
+            if (tok.length >= 7 && tok.length <= 9) {
+                let t = tok;
+                if (t.startsWith('EB')) t = t.slice(2);
+                else if ((t.startsWith('B') || t.startsWith('8') || t.startsWith('M')) && (t.length === 8 || t.length === 9) && !/^[0-9]+$/.test(t)) {
+                    t = t.slice(1);
+                }
+
+                let letPart = t.slice(0, 3);
+                let digPart = t.slice(3);
+                // If 5 digits (e.g. 29920 or 24981 where 2 is KTEO round sticker/screw), take last 4 digits
+                if (digPart.length === 5) digPart = digPart.slice(1);
+
+                // Letter fixes: 1 -> I, 0 -> O, 8 -> B
+                letPart = letPart.replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B');
+                // Digit fixes: O -> 0, I -> 1, B -> 8, S -> 5, Z -> 2
+                digPart = digPart.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+
+                const allLettersValid = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
+                if (allLettersValid && /^[1-9][0-9]{3}$/.test(digPart)) {
                     return `${normalizeToGreekPlate(letPart)}-${digPart}`;
                 }
             }
+        }
 
-            // Case B: Two consecutive tokens (e.g. "YNE" "5421")
-            if (i + 1 < words.length) {
-                const w2 = words[i + 1].replace(/[^A-ZΑ-Ω0-9]/g, '');
-                if (w1.length === 3 && w2.length === 4) {
-                    let letPart = w1.replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
-                    let digPart = w2.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+        // Strategy 2: Two consecutive tokens
+        for (let i = 0; i < tokens.length - 1; i++) {
+            let t1 = tokens[i];
+            let t2 = tokens[i + 1];
 
-                    const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
-                    if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
-                        return `${normalizeToGreekPlate(letPart)}-${digPart}`;
-                    }
+            if (t1.length === 4 && (t1.startsWith('B') || t1.startsWith('8') || t1.startsWith('E') || t1.startsWith('M')) && /^[A-ZΑ-Ω]{4}$/.test(t1)) {
+                t1 = t1.slice(1);
+            }
+            if (t1.length === 5 && t1.startsWith('EB')) {
+                t1 = t1.slice(2);
+            }
+
+            if (t1.length === 3) {
+                let letPart = t1.replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B');
+                let digPart = t2;
+                if (digPart.length === 5) digPart = digPart.slice(1);
+
+                digPart = digPart.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+
+                const allLettersValid = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
+                if (allLettersValid && /^[1-9][0-9]{3}$/.test(digPart)) {
+                    return `${normalizeToGreekPlate(letPart)}-${digPart}`;
                 }
             }
         }
 
-        // 3. Relaxed boundary match (handles plates attached to other characters)
-        const relaxedRegex = new RegExp(`([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})`);
-        const matchRel = clean.match(relaxedRegex);
-        if (matchRel) {
-            return `${normalizeToGreekPlate(matchRel[1])}-${matchRel[2]}`;
+        // Strategy 3: Relaxed regex scan
+        const relRegex = new RegExp(`([${VALID_GREEK_CHARS}1]{3})\\s*([1-9][0-9]{3})`);
+        const m = text.match(relRegex);
+        if (m) {
+            let letPart = m[1].replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B');
+            let digPart = m[2];
+            const allLettersValid = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
+            if (allLettersValid) {
+                return `${normalizeToGreekPlate(letPart)}-${digPart}`;
+            }
         }
 
         return null;
@@ -477,8 +509,9 @@
     }
 
     // Preprocessor specifically for Plate Photos:
-    // Focuses on the center region (70% width, 40% height) where the plate is framed,
-    // exactly like the live camera viewfinder, cutting out bumper & headlights.
+    // Wide horizontal coverage (90% width, 36% height centered) to capture the entire plate
+    // without cutting off the first/last characters or capturing the honeycomb grille / bumper lines.
+    // Adds a 20px clean white border padding around canvas for optimal Tesseract clearance.
     function preprocessPlatePhoto(file, cropCenter = true) {
         return new Promise((resolve, reject) => {
             if (!file) {
@@ -493,28 +526,31 @@
                     let sx = 0, sy = 0, sw = img.width, sh = img.height;
 
                     if (cropCenter) {
-                        // Focus crop on center 70% width, 40% height where user points camera at plate
-                        sw = Math.round(img.width * 0.70);
-                        sh = Math.round(img.height * 0.40);
+                        // Wide center crop: 90% width, 36% height
+                        sw = Math.round(img.width * 0.90);
+                        sh = Math.round(img.height * 0.36);
                         sx = Math.round((img.width - sw) / 2);
                         sy = Math.round((img.height - sh) / 2);
                     }
 
-                    // Keep high resolution around 1200px width so embossed letters are razor sharp
+                    // Keep sharp resolution around 1200px width
                     const targetW = Math.min(1200, sw);
                     const targetH = Math.round((sh * targetW) / sw);
+                    const pad = 20;
 
-                    canvas.width = targetW;
-                    canvas.height = targetH;
+                    canvas.width = targetW + (pad * 2);
+                    canvas.height = targetH + (pad * 2);
                     const ctx = canvas.getContext('2d');
                     if (!ctx) {
                         resolve(e.target.result);
                         return;
                     }
-                    // High contrast black-on-white plate optimization
-                    ctx.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
-                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
-                    resolve(canvas.toDataURL('image/jpeg', 0.90));
+                    // Pure white background padding for Tesseract border clearance
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    // Draw image centered inside the padded canvas (natural contrast)
+                    ctx.drawImage(img, sx, sy, sw, sh, pad, pad, targetW, targetH);
+                    resolve(canvas.toDataURL('image/jpeg', 0.92));
                 };
                 img.onerror = () => reject(new Error('Αποτυχία ανάγνωσης εικόνας.'));
                 img.src = e.target.result;
@@ -561,19 +597,21 @@
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         
-        // Focus crop on the center target box (70% width, 40% height) for 5x faster & sharper OCR
-        const cropW = Math.round(vw * 0.70);
-        const cropH = Math.round(vh * 0.40);
+        // Focus crop on 90% width, 36% height matching Greek plate aspect ratio
+        const cropW = Math.round(vw * 0.90);
+        const cropH = Math.round(vh * 0.36);
         const cropX = Math.round((vw - cropW) / 2);
         const cropY = Math.round((vh - cropH) / 2);
+        const pad = 20;
 
-        canvas.width = cropW;
-        canvas.height = cropH;
+        canvas.width = cropW + (pad * 2);
+        canvas.height = cropH + (pad * 2);
         const context = canvas.getContext('2d');
-        context.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
-        context.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        context.fillStyle = '#FFFFFF';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(video, cropX, cropY, cropW, cropH, pad, pad, cropW, cropH);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         toggleCamera(); // Close viewfinder
 
         setOcrStatus('loading', 'Ανάγνωση πινακίδας από κάμερα...', 15);
@@ -735,9 +773,12 @@
     // Plate auto-formatting & instant lookup
     let lookupTimeout = null;
     function handlePlateInput(input) {
-        let val = input.value.toUpperCase().replace(/[^A-ZΑ-Ω0-9]/g, '');
-        if (val.length > 3 && !val.includes('-')) {
-            val = val.slice(0, 3) + '-' + val.slice(3, 7);
+        let clean = input.value.toUpperCase().replace(/[^A-ZΑ-Ω0-9]/g, '');
+        let letters = normalizeToGreekPlate(clean.slice(0, 3));
+        let digits = clean.slice(3, 7);
+        let val = letters;
+        if (digits.length > 0) {
+            val += '-' + digits;
         }
         input.value = val;
 

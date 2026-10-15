@@ -46,8 +46,10 @@ logs/
 *.tmp
 *.bak
 
-# Temporary Test Screenshots
+# Temporary Test Screenshots & Scratches
 static/img/test_mobile_*.png
+scratch/
+*.traineddata
 
 # Testing & Coverage
 .pytest_cache/
