@@ -31,17 +31,24 @@
                     <span class="text-[9px] bg-emerald-500/30 text-emerald-200 px-1 py-0.2 rounded font-normal">Συνιστάται</span>
                 </button>
 
-                <!-- 2. Snap Plate Photo (Fast mobile shutter with autofocus) -->
-                <button type="button" onclick="document.getElementById('plateFileInput').click()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-amber-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
+                <!-- 2. Snap Plate Photo (Fast mobile shutter with autofocus / PC image) -->
+                <button type="button" onclick="document.getElementById('plateFileInput').click()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-amber-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition" title="Φωτογραφία ή αρχείο εικόνας (υποστηρίζει και επικόλληση Ctrl+V)">
                     <i class="fa-solid fa-camera text-amber-400"></i>
                     <span>Φωτό Πινακίδας</span>
                 </button>
                 <input type="file" id="plateFileInput" accept="image/*" capture="environment" onchange="handlePlateFile(this)" class="hidden">
 
-                <!-- 3. Scan Registration Document -->
+                <!-- 3. Manual Crop from Vehicle Photo -->
+                <button type="button" onclick="document.getElementById('plateCropFileInput').click()" class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition" title="Επιλογή οποιασδήποτε φωτογραφίας οχήματος & καδράρισμα">
+                    <i class="fa-solid fa-crop-simple text-emerald-400"></i>
+                    <span>Καδράρισμα</span>
+                </button>
+                <input type="file" id="plateCropFileInput" accept="image/*" onchange="if(this.files.length) { openPlateCropModal(this.files[0]); this.value=''; }" class="hidden">
+
+                <!-- 4. Scan Registration Document -->
                 <button type="button" onclick="document.getElementById('registrationFileInput').click()" class="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
                     <i class="fa-solid fa-file-invoice"></i>
-                    <span>📄 Σκανάρισμα Άδειας</span>
+                    <span>📄 Άδεια</span>
                 </button>
                 <input type="file" id="registrationFileInput" accept="image/*" capture="environment" onchange="handleRegistrationFile(this)" class="hidden">
             </div>
@@ -105,6 +112,10 @@
                         class="eu-plate-input-field">
                 </div>
                 <span id="plateLookupBadge" class="absolute right-4 top-4 text-xs font-bold hidden z-10"></span>
+                <div class="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1.5">
+                    <i class="fa-solid fa-keyboard text-amber-400"></i>
+                    <span>Στο PC: Επικολλήστε εικόνα με <strong>Ctrl+V</strong> ή σύρετε αρχείο (Drag & Drop).</span>
+                </div>
             </div>
             <div id="lookupAlert" class="hidden mt-2.5 p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition">
                 <div class="flex items-center gap-2">
@@ -254,11 +265,72 @@
         </div>
     </div>
 
+    <!-- 🖼️ Interactive Plate Crop Modal (for full-car photos / manual adjustment) -->
+    <div id="plateCropModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md items-center justify-center p-3 sm:p-6 animate-enter-modal">
+        <div class="garage-card max-w-xl w-full flex flex-col overflow-hidden shadow-2xl border-white/[0.1]">
+            <!-- Header -->
+            <div class="px-4 py-3 bg-slate-800/80 border-b border-white/[0.08] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-crop-simple text-amber-400"></i>
+                    <span class="text-sm font-extrabold text-white">Επιλογή Πινακίδας</span>
+                </div>
+                <button type="button" onclick="closePlateCropModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Instruction -->
+            <div class="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-amber-400"></i>
+                <span>Σύρετε ή αλλάξτε μέγεθος στο πράσινο πλαίσιο ώστε να περικλείει την πινακίδα.</span>
+            </div>
+
+            <!-- Crop Viewport Container -->
+            <div id="cropViewport" class="relative w-full bg-slate-950 flex items-center justify-center overflow-hidden select-none p-2" style="max-height: 55vh; min-height: 240px;">
+                <canvas id="cropSourceCanvas" class="max-w-full max-h-[50vh] object-contain block rounded shadow border border-white/5"></canvas>
+                
+                <!-- Draggable & Resizable Green Bounding Box -->
+                <div id="cropFrame" class="absolute border-2 border-emerald-400 bg-emerald-500/20 rounded shadow-[0_0_20px_rgba(16,185,129,0.5)] cursor-move flex items-center justify-center pointer-events-auto" style="width: 200px; height: 55px; left: 50%; top: 50%; transform: translate(-50%, -50%);">
+                    <span class="text-[10px] font-mono text-emerald-200 font-bold bg-slate-950/85 px-2 py-0.5 rounded border border-emerald-500/40 pointer-events-none select-none">
+                        Πινακίδα
+                    </span>
+                    <!-- Corner resize handles -->
+                    <div class="crop-handle crop-handle-nw absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full cursor-nwse-resize shadow"></div>
+                    <div class="crop-handle crop-handle-ne absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full cursor-nesw-resize shadow"></div>
+                    <div class="crop-handle crop-handle-sw absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full cursor-nesw-resize shadow"></div>
+                    <div class="crop-handle crop-handle-se absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full cursor-nwse-resize shadow"></div>
+                </div>
+            </div>
+
+            <!-- Crop Error Banner -->
+            <div id="cropErrorBanner" class="hidden px-4 py-2 bg-rose-500/20 border-t border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span id="cropErrorText">Δεν διαβάστηκαν χαρακτήρες. Δοκιμάστε να ευθυγραμμίσετε ακριβώς το πλαίσιο.</span>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-3 bg-slate-800/80 border-t border-white/[0.08] flex items-center justify-between gap-3">
+                <button type="button" onclick="closePlateCropModal()" class="px-4 py-2 bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    Ακύρωση
+                </button>
+                <button type="button" id="confirmCropBtn" onclick="executeManualCropAndOcr()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Ανάγνωση Πινακίδας</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="/static/js/tesseract.min.js"></script>
+<script>
+    if (typeof Tesseract === 'undefined') {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"><\/script>');
+    }
+</script>
 <script>
     let videoStream = null;
 
@@ -324,6 +396,18 @@
 
         const tokens = text.split(/[^A-ZΑ-Ω0-9]+/).filter(Boolean);
 
+        function resolveDigits(d) {
+            let fixed = d.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+            if (fixed.length === 5) {
+                if (fixed[0] === '2' || fixed[0] === '0') {
+                    fixed = fixed.slice(1);
+                } else if (/^[1-9][0-9]{3}/.test(fixed)) {
+                    fixed = fixed.slice(0, 4);
+                }
+            }
+            return fixed;
+        }
+
         // Strategy 1: Combined token of 7-9 characters (e.g. BANH4981, 1BH29920, 1BH9920, ANH4981)
         for (let tok of tokens) {
             if (tok.length >= 7 && tok.length <= 9) {
@@ -334,14 +418,10 @@
                 }
 
                 let letPart = t.slice(0, 3);
-                let digPart = t.slice(3);
-                // If 5 digits (e.g. 29920 or 24981 where 2 is KTEO round sticker/screw), take last 4 digits
-                if (digPart.length === 5) digPart = digPart.slice(1);
+                let digPart = resolveDigits(t.slice(3));
 
                 // Letter fixes: 1 -> I, 0 -> O, 8 -> B
                 letPart = letPart.replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B');
-                // Digit fixes: O -> 0, I -> 1, B -> 8, S -> 5, Z -> 2
-                digPart = digPart.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
 
                 const allLettersValid = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
                 if (allLettersValid && /^[1-9][0-9]{3}$/.test(digPart)) {
@@ -364,10 +444,7 @@
 
             if (t1.length === 3) {
                 let letPart = t1.replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B');
-                let digPart = t2;
-                if (digPart.length === 5) digPart = digPart.slice(1);
-
-                digPart = digPart.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+                let digPart = resolveDigits(t2);
 
                 const allLettersValid = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
                 if (allLettersValid && /^[1-9][0-9]{3}$/.test(digPart)) {
@@ -508,11 +585,100 @@
         });
     }
 
+    // 🧠 Smart Plate Region Detector for Full Car Photos:
+    // Finds high-contrast white rectangular region (Greek plate) in any car image
+    function detectPlateBoundingBox(img) {
+        try {
+            const scanW = 320;
+            const scale = scanW / img.width;
+            const scanH = Math.round(img.height * scale);
+            if (scanW < 50 || scanH < 30) return null;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = scanW;
+            canvas.height = scanH;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            if (!ctx) return null;
+
+            ctx.drawImage(img, 0, 0, scanW, scanH);
+            const imgData = ctx.getImageData(0, 0, scanW, scanH);
+            const data = imgData.data;
+
+            // Greyscale luminance
+            const lum = new Float32Array(scanW * scanH);
+            for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+                lum[p] = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            }
+
+            // High horizontal gradient on bright pixels (>130)
+            const score = new Float32Array(scanW * scanH);
+            for (let y = 0; y < scanH; y++) {
+                const row = y * scanW;
+                for (let x = 1; x < scanW - 1; x++) {
+                    const val = lum[row + x];
+                    if (val > 130) {
+                        const dx = Math.abs(lum[row + x + 1] - lum[row + x - 1]);
+                        score[row + x] = dx;
+                    }
+                }
+            }
+
+            // Window aspect ratio ~3.6 : 1
+            const winW = Math.round(scanW * 0.26);
+            const winH = Math.round(winW / 3.6);
+            if (winW <= 5 || winH <= 5 || winW >= scanW || winH >= scanH) return null;
+
+            // 2D Integral Table
+            const ii = new Float64Array((scanW + 1) * (scanH + 1));
+            for (let y = 0; y < scanH; y++) {
+                let rowSum = 0;
+                for (let x = 0; x < scanW; x++) {
+                    rowSum += score[y * scanW + x];
+                    ii[(y + 1) * (scanW + 1) + (x + 1)] = ii[y * (scanW + 1) + (x + 1)] + rowSum;
+                }
+            }
+
+            let bestScore = -1, bestX = 0, bestY = 0;
+            const step = 4;
+            for (let y = 0; y <= scanH - winH; y += step) {
+                const y0 = y, y1 = y + winH;
+                for (let x = 0; x <= scanW - winW; x += step) {
+                    const x0 = x, x1 = x + winW;
+                    const s = ii[y1 * (scanW + 1) + x1] - ii[y0 * (scanW + 1) + x1] - ii[y1 * (scanW + 1) + x0] + ii[y0 * (scanW + 1) + x0];
+                    if (s > bestScore) {
+                        bestScore = s;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+
+            if (bestScore <= 40) return null; // No distinctive plate region
+
+            // Map back to original image dimensions with 20% safety margin
+            const origX = bestX / scale;
+            const origY = bestY / scale;
+            const origW = winW / scale;
+            const origH = winH / scale;
+            const marginX = origW * 0.20;
+            const marginY = origH * 0.25;
+
+            const sx = Math.max(0, Math.round(origX - marginX));
+            const sy = Math.max(0, Math.round(origY - marginY));
+            const sw = Math.min(img.width - sx, Math.round(origW + marginX * 2));
+            const sh = Math.min(img.height - sy, Math.round(origH + marginY * 2));
+
+            return { sx, sy, sw, sh };
+        } catch (err) {
+            console.warn('Plate detector fallback:', err);
+            return null;
+        }
+    }
+
     // Preprocessor specifically for Plate Photos:
-    // Wide horizontal coverage (90% width, 36% height centered) to capture the entire plate
-    // without cutting off the first/last characters or capturing the honeycomb grille / bumper lines.
+    // Supports 'auto' (smart license plate locator), 'center' (viewfinder crop), and 'full' (overview)
     // Adds a 20px clean white border padding around canvas for optimal Tesseract clearance.
-    function preprocessPlatePhoto(file, cropCenter = true) {
+    function preprocessPlatePhoto(file, mode = 'auto') {
         return new Promise((resolve, reject) => {
             if (!file) {
                 reject(new Error('Δεν επιλέχθηκε αρχείο.'));
@@ -525,8 +691,20 @@
                     const canvas = document.createElement('canvas');
                     let sx = 0, sy = 0, sw = img.width, sh = img.height;
 
-                    if (cropCenter) {
-                        // Wide center crop: 90% width, 36% height
+                    if (mode === 'auto') {
+                        const bbox = detectPlateBoundingBox(img);
+                        if (bbox) {
+                            sx = bbox.sx;
+                            sy = bbox.sy;
+                            sw = bbox.sw;
+                            sh = bbox.sh;
+                        } else {
+                            sw = Math.round(img.width * 0.90);
+                            sh = Math.round(img.height * 0.36);
+                            sx = Math.round((img.width - sw) / 2);
+                            sy = Math.round((img.height - sh) / 2);
+                        }
+                    } else if (mode === 'center') {
                         sw = Math.round(img.width * 0.90);
                         sh = Math.round(img.height * 0.36);
                         sx = Math.round((img.width - sw) / 2);
@@ -545,10 +723,8 @@
                         resolve(e.target.result);
                         return;
                     }
-                    // Pure white background padding for Tesseract border clearance
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    // Draw image centered inside the padded canvas (natural contrast)
                     ctx.drawImage(img, sx, sy, sw, sh, pad, pad, targetW, targetH);
                     resolve(canvas.toDataURL('image/jpeg', 0.92));
                 };
@@ -637,23 +813,34 @@
         }
     }
 
-    // Photo File capture for license plate (mobile autofocus / gallery)
+    // Photo File capture for license plate (mobile autofocus / PC gallery / paste)
     async function handlePlateFile(input) {
         if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
+        await processPlateFile(file);
+        input.value = '';
+    }
 
-        setOcrStatus('loading', 'Επεξεργασία φωτογραφίας πινακίδας...', 10);
+    async function processPlateFile(file) {
+        setOcrStatus('loading', 'Ανίχνευση πινακίδας στο όχημα...', 15);
 
         try {
-            // Step 1: Center-crop first (exactly like the live camera box, cuts out car headlights & dealer frames)
-            const centerCropUrl = await preprocessPlatePhoto(file, true);
-            let foundPlate = await scanPlateDataUrl(centerCropUrl, 15, 60);
+            // Step 1: Smart Auto-Detect Plate Region (works on full-car photos and close-ups alike)
+            const autoCropUrl = await preprocessPlatePhoto(file, 'auto');
+            let foundPlate = await scanPlateDataUrl(autoCropUrl, 15, 50);
 
-            // Step 2: Fallback to full image scan if plate wasn't in center
+            // Step 2: Center-crop (focused viewfinder box)
             if (!foundPlate) {
-                setOcrStatus('loading', 'Ευρεία αναζήτηση πινακίδας...', 65);
-                const fullPhotoUrl = await preprocessPlatePhoto(file, false);
-                foundPlate = await scanPlateDataUrl(fullPhotoUrl, 70, 95);
+                setOcrStatus('loading', 'Σάρωση κεντρικής περιοχής πινακίδας...', 55);
+                const centerCropUrl = await preprocessPlatePhoto(file, 'center');
+                foundPlate = await scanPlateDataUrl(centerCropUrl, 55, 75);
+            }
+
+            // Step 3: Full image scan (for already-cropped or custom photos)
+            if (!foundPlate) {
+                setOcrStatus('loading', 'Ευρεία αναζήτηση πινακίδας στο όχημα...', 80);
+                const fullPhotoUrl = await preprocessPlatePhoto(file, 'full');
+                foundPlate = await scanPlateDataUrl(fullPhotoUrl, 80, 95);
             }
 
             if (foundPlate) {
@@ -665,17 +852,297 @@
                 setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
                 hideOcrBanner(4000);
             } else {
-                setOcrStatus('warning', 'Δεν εντοπίστηκε καθαρά η πινακίδα. Χρησιμοποιήστε τη Live Κάμερα με το σκόπευτρο ή πληκτρολογήστε την.', null);
-                hideOcrBanner(5000);
+                // If auto-detection didn't capture the plate, open the interactive crop modal!
+                hideOcrBanner(500);
+                openPlateCropModal(file);
             }
         } catch (err) {
             console.error('Plate photo error:', err);
             setOcrStatus('error', 'Σφάλμα επεξεργασίας φωτογραφίας: ' + err.message, null);
             hideOcrBanner(4500);
-        } finally {
-            input.value = '';
         }
     }
+
+    // --- 🖼️ Interactive Plate Cropper Logic ---
+    let currentCropFile = null;
+    let currentCropImg = null;
+    window.cropBoxState = { x: 50, y: 50, w: 200, h: 55 };
+    let cropBoxState = window.cropBoxState;
+    let isDraggingCrop = false;
+    let dragStart = { clientX: 0, clientY: 0, x: 0, y: 0, w: 0, h: 0 };
+    let activeResizeHandle = null;
+
+    function openPlateCropModal(file) {
+        currentCropFile = file;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                currentCropImg = img;
+                const modal = document.getElementById('plateCropModal');
+                const canvas = document.getElementById('cropSourceCanvas');
+                const errBanner = document.getElementById('cropErrorBanner');
+                if (errBanner) errBanner.classList.add('hidden');
+
+                const maxW = Math.min(540, window.innerWidth - 40);
+                const maxH = Math.min(360, window.innerHeight * 0.45);
+                const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+                const renderW = Math.round(img.width * scale);
+                const renderH = Math.round(img.height * scale);
+
+                canvas.width = renderW;
+                canvas.height = renderH;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, renderW, renderH);
+
+                const initW = Math.min(220, Math.round(renderW * 0.65));
+                const initH = Math.round(initW / 3.8);
+                const initX = Math.round((renderW - initW) / 2);
+                const initY = Math.round((renderH - initH) / 2);
+                cropBoxState.x = initX;
+                cropBoxState.y = initY;
+                cropBoxState.w = initW;
+                cropBoxState.h = initH;
+                window.cropBoxState = cropBoxState;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                // Allow DOM render then position frame accurately
+                setTimeout(() => {
+                    updateCropFrameStyles(renderW, renderH);
+                    initCropInteractions(renderW, renderH);
+                }, 50);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateCropFrameStyles(renderW, renderH) {
+        window.updateCropFrameStyles = updateCropFrameStyles;
+        const frame = document.getElementById('cropFrame');
+        const canvas = document.getElementById('cropSourceCanvas');
+        if (!frame || !canvas) return;
+
+        const cRect = canvas.getBoundingClientRect();
+        const vRect = canvas.parentElement.getBoundingClientRect();
+        const offsetX = cRect.left - vRect.left;
+        const offsetY = cRect.top - vRect.top;
+
+        frame.style.transform = 'none';
+        frame.style.left = `${offsetX + cropBoxState.x}px`;
+        frame.style.top = `${offsetY + cropBoxState.y}px`;
+        frame.style.width = `${cropBoxState.w}px`;
+        frame.style.height = `${cropBoxState.h}px`;
+    }
+
+    function initCropInteractions(renderW, renderH) {
+        const frame = document.getElementById('cropFrame');
+        if (!frame) return;
+
+        const newFrame = frame.cloneNode(true);
+        frame.parentNode.replaceChild(newFrame, frame);
+
+        const getPos = e => {
+            const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : e;
+            return { x: touch.clientX, y: touch.clientY };
+        };
+
+        newFrame.onmousedown = onFrameStart;
+        newFrame.ontouchstart = onFrameStart;
+
+        function onFrameStart(e) {
+            e.preventDefault();
+            const pos = getPos(e);
+            activeResizeHandle = e.target.classList.contains('crop-handle') ? e.target : null;
+
+            isDraggingCrop = true;
+            dragStart = {
+                clientX: pos.x,
+                clientY: pos.y,
+                x: cropBoxState.x,
+                y: cropBoxState.y,
+                w: cropBoxState.w,
+                h: cropBoxState.h
+            };
+
+            document.addEventListener('mousemove', onFrameMove);
+            document.addEventListener('touchmove', onFrameMove, { passive: false });
+            document.addEventListener('mouseup', onFrameEnd);
+            document.addEventListener('touchend', onFrameEnd);
+        }
+
+        function onFrameMove(e) {
+            if (!isDraggingCrop) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            const dx = pos.x - dragStart.clientX;
+            const dy = pos.y - dragStart.clientY;
+
+            if (!activeResizeHandle) {
+                let newX = Math.max(0, Math.min(renderW - dragStart.w, dragStart.x + dx));
+                let newY = Math.max(0, Math.min(renderH - dragStart.h, dragStart.y + dy));
+                cropBoxState.x = newX;
+                cropBoxState.y = newY;
+            } else {
+                if (activeResizeHandle.classList.contains('crop-handle-se')) {
+                    cropBoxState.w = Math.max(70, Math.min(renderW - dragStart.x, dragStart.w + dx));
+                    cropBoxState.h = Math.max(22, Math.min(renderH - dragStart.y, dragStart.h + dy));
+                } else if (activeResizeHandle.classList.contains('crop-handle-sw')) {
+                    const newW = Math.max(70, dragStart.w - dx);
+                    cropBoxState.x = Math.max(0, dragStart.x + (dragStart.w - newW));
+                    cropBoxState.w = newW;
+                    cropBoxState.h = Math.max(22, Math.min(renderH - dragStart.y, dragStart.h + dy));
+                } else if (activeResizeHandle.classList.contains('crop-handle-ne')) {
+                    cropBoxState.w = Math.max(70, Math.min(renderW - dragStart.x, dragStart.w + dx));
+                    const newH = Math.max(22, dragStart.h - dy);
+                    cropBoxState.y = Math.max(0, dragStart.y + (dragStart.h - newH));
+                    cropBoxState.h = newH;
+                } else if (activeResizeHandle.classList.contains('crop-handle-nw')) {
+                    const newW = Math.max(70, dragStart.w - dx);
+                    const newH = Math.max(22, dragStart.h - dy);
+                    cropBoxState.x = Math.max(0, dragStart.x + (dragStart.w - newW));
+                    cropBoxState.y = Math.max(0, dragStart.y + (dragStart.h - newH));
+                    cropBoxState.w = newW;
+                    cropBoxState.h = newH;
+                }
+            }
+            updateCropFrameStyles(renderW, renderH);
+        }
+
+        function onFrameEnd() {
+            isDraggingCrop = false;
+            activeResizeHandle = null;
+            document.removeEventListener('mousemove', onFrameMove);
+            document.removeEventListener('touchmove', onFrameMove);
+            document.removeEventListener('mouseup', onFrameEnd);
+            document.removeEventListener('touchend', onFrameEnd);
+        }
+    }
+
+    function closePlateCropModal() {
+        const modal = document.getElementById('plateCropModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        currentCropFile = null;
+        currentCropImg = null;
+    }
+
+    async function executeManualCropAndOcr() {
+        if (!currentCropImg) return;
+        const btn = document.getElementById('confirmCropBtn');
+        const errBanner = document.getElementById('cropErrorBanner');
+        const errText = document.getElementById('cropErrorText');
+        if (errBanner) errBanner.classList.add('hidden');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Ανάγνωση...</span>';
+
+        try {
+            const canvas = document.getElementById('cropSourceCanvas');
+            const scaleX = currentCropImg.width / canvas.width;
+            const scaleY = currentCropImg.height / canvas.height;
+
+            const sx = Math.max(0, Math.round(cropBoxState.x * scaleX));
+            const sy = Math.max(0, Math.round(cropBoxState.y * scaleY));
+            const sw = Math.min(currentCropImg.width - sx, Math.round(cropBoxState.w * scaleX));
+            const sh = Math.min(currentCropImg.height - sy, Math.round(cropBoxState.h * scaleY));
+            console.log('Manual crop execute:', { sx, sy, sw, sh, imgW: currentCropImg.width, imgH: currentCropImg.height, canvasW: canvas.width, canvasH: canvas.height, cropBoxState });
+
+            const tempCanvas = document.createElement('canvas');
+            const targetW = Math.min(1200, sw);
+            const targetH = Math.round((sh * targetW) / sw);
+            const pad = 20;
+
+            tempCanvas.width = targetW + (pad * 2);
+            tempCanvas.height = targetH + (pad * 2);
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(currentCropImg, sx, sy, sw, sh, pad, pad, targetW, targetH);
+
+            const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.92);
+            let foundPlate = await scanPlateDataUrl(dataUrl, 20, 95);
+
+            if (!foundPlate) {
+                // Secondary fallback: centered sub-crop if framed with extra borders/bumper
+                const subCanvas = document.createElement('canvas');
+                const subW = Math.round(targetW * 0.90);
+                const subH = Math.round(targetH * 0.70);
+                const subX = Math.round((targetW - subW) / 2) + pad;
+                const subY = Math.round((targetH - subH) / 2) + pad;
+                subCanvas.width = subW + (pad * 2);
+                subCanvas.height = subH + (pad * 2);
+                const subCtx = subCanvas.getContext('2d');
+                subCtx.fillStyle = '#FFFFFF';
+                subCtx.fillRect(0, 0, subCanvas.width, subCanvas.height);
+                subCtx.drawImage(tempCanvas, subX, subY, subW, subH, pad, pad, subW, subH);
+                foundPlate = await scanPlateDataUrl(subCanvas.toDataURL('image/jpeg', 0.92), 70, 95);
+            }
+
+            if (foundPlate) {
+                const plateInput = document.getElementById('plateInput');
+                plateInput.value = foundPlate;
+                handlePlateInput(plateInput);
+                flashInputSuccess(plateInput);
+                closePlateCropModal();
+
+                setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
+                hideOcrBanner(4000);
+            } else {
+                if (errBanner) {
+                    errText.innerText = 'Δεν διαβάστηκε πινακίδα στο επιλεγμένο πλαίσιο. Σύρετε το πλαίσιο ακριβώς πάνω στα γράμματα και δοκιμάστε ξανά.';
+                    errBanner.classList.remove('hidden');
+                }
+            }
+        } catch (err) {
+            console.error('Manual crop OCR error:', err);
+            if (errBanner) {
+                errText.innerText = 'Σφάλμα ανάγνωσης: ' + err.message;
+                errBanner.classList.remove('hidden');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Ανάγνωση Πινακίδας</span>';
+        }
+    }
+
+    // 📋 Global Clipboard Paste for Car / Plate Images (PC & Mobile)
+    window.addEventListener('paste', e => {
+        const items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData))?.items;
+        if (!items) return;
+        for (let item of items) {
+            if (item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    processPlateFile(file);
+                    break;
+                }
+            }
+        }
+    });
+
+    // 🖱️ Drag & Drop on Plate Area for PC Users
+    document.addEventListener('DOMContentLoaded', () => {
+        const dropZones = ['cameraContainer', 'plateInput'];
+        dropZones.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+            el.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type && file.type.startsWith('image/')) {
+                        processPlateFile(file);
+                    }
+                }
+            });
+        });
+    });
 
     // 📄 Registration Document (Άδεια Κυκλοφορίας) OCR Scanner
     async function handleRegistrationFile(input) {
