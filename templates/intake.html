@@ -17,44 +17,58 @@
     </div>
 
     <!-- Camera Plate Scanner Viewfinder (Collapsible/Toggle) -->
-    <!-- Camera Plate Scanner Viewfinder (Collapsible/Toggle) -->
     <div class="garage-card p-4 shadow-xl space-y-3 border-white/[0.08]">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <span class="text-xs font-extrabold text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <i class="fa-solid fa-camera text-amber-400"></i>
-                Αυτόματη Αναγνώριση
+                Αυτόματη Αναγνώριση (OCR)
             </span>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- 1. Live Camera Viewfinder -->
                 <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
-                    <i class="fa-solid fa-camera"></i>
-                    <span>Κάμερα Πινακίδας</span>
+                    <i class="fa-solid fa-video text-emerald-400"></i>
+                    <span>Live Κάμερα</span>
                 </button>
+
+                <!-- 2. Snap Plate Photo (Fast mobile shutter with autofocus) -->
+                <button type="button" onclick="document.getElementById('plateFileInput').click()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-amber-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-camera text-amber-400"></i>
+                    <span>Φωτό Πινακίδας</span>
+                </button>
+                <input type="file" id="plateFileInput" accept="image/*" capture="environment" onchange="handlePlateFile(this)" class="hidden">
+
+                <!-- 3. Scan Registration Document -->
                 <button type="button" onclick="document.getElementById('registrationFileInput').click()" class="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
                     <i class="fa-solid fa-file-invoice"></i>
-                    <span>📄 Σκανάρισμα Άδειας (OCR)</span>
+                    <span>📄 Σκανάρισμα Άδειας</span>
                 </button>
                 <input type="file" id="registrationFileInput" accept="image/*" capture="environment" onchange="handleRegistrationFile(this)" class="hidden">
             </div>
         </div>
 
-        <div id="ocrProgressBanner" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-spinner fa-spin text-amber-400"></i>
-            <span id="ocrProgressText">Ανάγνωση Άδειας Κυκλοφορίας με OCR...</span>
+        <!-- Progress Banner with live percentage -->
+        <div id="ocrProgressBanner" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold flex items-center justify-between transition-all">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-amber-400" id="ocrProgressSpinner"></i>
+                <span id="ocrProgressText">Επεξεργασία εικόνας...</span>
+            </div>
+            <span id="ocrProgressPct" class="font-mono text-[11px] tabular-nums text-amber-400 font-extrabold">0%</span>
         </div>
 
+        <!-- Live Camera Viewfinder -->
         <div id="cameraContainer" class="relative rounded-xl overflow-hidden bg-slate-950 border border-white/[0.08] hidden aspect-video flex items-center justify-center">
-            <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
+            <video id="videoFeed" autoplay playsinline muted class="w-full h-full object-cover"></video>
             <!-- Guided License Plate Target Bounding Box -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div class="w-3/4 h-1/3 border-2 border-emerald-400 border-dashed rounded-lg flex items-center justify-center bg-emerald-500/10">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+                <div class="w-full max-w-xs h-20 border-2 border-emerald-400 border-dashed rounded-xl flex items-center justify-center bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                     <span class="text-[11px] font-mono text-emerald-300 font-bold bg-slate-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
-                        Τοποθετήστε την πινακίδα εδώ
+                        Ευθυγραμμίστε την πινακίδα εδώ
                     </span>
                 </div>
             </div>
             <!-- Snap OCR Button -->
             <button type="button" onclick="captureAndScanPlate()" class="absolute bottom-3 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-full shadow-lg shadow-emerald-500/40 flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-check"></i> Λήψη & Αναγνώριση
+                <i class="fa-solid fa-bolt"></i> Λήψη & Αναγνώριση
             </button>
         </div>
         <canvas id="snapshotCanvas" class="hidden"></canvas>
@@ -263,17 +277,343 @@
         }
     }
 
-    function captureAndScanPlate() {
+    // Greek-Latin Lookalike Normalization for Greek License Plates
+    const LATIN_TO_GREEK_MAP = {
+        'A': 'Α', 'B': 'Β', 'E': 'Ε', 'Z': 'Ζ', 'H': 'Η', 'I': 'Ι',
+        'K': 'Κ', 'M': 'Μ', 'N': 'Ν', 'O': 'Ο', 'P': 'Ρ', 'T': 'Τ',
+        'Y': 'Υ', 'X': 'Χ'
+    };
+
+    function normalizeToGreekPlate(str) {
+        if (!str) return '';
+        let res = '';
+        for (let c of str.toUpperCase()) {
+            res += (LATIN_TO_GREEK_MAP[c] || c);
+        }
+        return res;
+    }
+
+    function extractPlateFromText(rawText) {
+        if (!rawText) return null;
+        const clean = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ').replace(/[^A-Za-zΑ-Ωα-ω0-9\s\-]/g, '');
+
+        // 1. Strict pattern: 3 letters + 4 digits (e.g. YNE 5421, ΥΝΕ-5421)
+        const match = clean.match(/([A-ZΑ-Ω]{3})[\s\-]*([0-9]{4})/);
+        if (match) {
+            const letters = normalizeToGreekPlate(match[1]);
+            const numbers = match[2];
+            return `${letters}-${numbers}`;
+        }
+
+        // 2. Fallback: Any 7 contiguous alphanumeric token where first 3 look like letters and last 4 look like digits
+        const words = clean.split(/\s+/).filter(w => w.replace(/[^A-ZΑ-Ω0-9]/g, '').length >= 6);
+        for (let w of words) {
+            const sanitized = w.replace(/[^A-ZΑ-Ω0-9]/g, '');
+            if (sanitized.length >= 7) {
+                let partLetters = sanitized.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
+                let partDigits = sanitized.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5');
+                if (/^[A-ZΑ-Ω]{3}$/.test(partLetters) && /^[0-9]{4}$/.test(partDigits)) {
+                    return `${normalizeToGreekPlate(partLetters)}-${partDigits}`;
+                }
+            }
+        }
+        return null;
+    }
+
+    // --- 🛠️ Robust OCR Banner & Engine Helpers ---
+    let ocrHideTimeout = null;
+
+    function setOcrStatus(state, message, pct) {
+        const banner = document.getElementById('ocrProgressBanner');
+        const spinner = document.getElementById('ocrProgressSpinner');
+        const textEl = document.getElementById('ocrProgressText');
+        const pctEl = document.getElementById('ocrProgressPct');
+        if (!banner) return;
+
+        if (ocrHideTimeout) {
+            clearTimeout(ocrHideTimeout);
+            ocrHideTimeout = null;
+        }
+
+        banner.classList.remove('hidden');
+
+        if (state === 'loading') {
+            banner.className = 'p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold flex items-center justify-between transition-all';
+            if (spinner) spinner.className = 'fa-solid fa-spinner fa-spin text-amber-400';
+        } else if (state === 'success') {
+            banner.className = 'p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-bold flex items-center justify-between transition-all';
+            if (spinner) spinner.className = 'fa-solid fa-circle-check text-emerald-400 text-sm';
+        } else if (state === 'warning') {
+            banner.className = 'p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold flex items-center justify-between transition-all';
+            if (spinner) spinner.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+        } else if (state === 'error') {
+            banner.className = 'p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-bold flex items-center justify-between transition-all';
+            if (spinner) spinner.className = 'fa-solid fa-circle-xmark text-rose-400';
+        }
+
+        if (textEl && message) textEl.innerText = message;
+        if (pctEl) {
+            if (pct !== undefined && pct !== null) {
+                pctEl.innerText = `${Math.min(100, Math.max(0, Math.round(pct)))}%`;
+                pctEl.classList.remove('hidden');
+            } else {
+                pctEl.classList.add('hidden');
+            }
+        }
+    }
+
+    function hideOcrBanner(delayMs = 4000) {
+        if (ocrHideTimeout) clearTimeout(ocrHideTimeout);
+        ocrHideTimeout = setTimeout(() => {
+            const banner = document.getElementById('ocrProgressBanner');
+            if (banner) banner.classList.add('hidden');
+        }, delayMs);
+    }
+
+    function makeTesseractLogger(statusLabel) {
+        return function(m) {
+            if (!m) return;
+            const rawPct = Math.round((m.progress || 0) * 100);
+            let label = statusLabel;
+            let pct = rawPct;
+
+            if (m.status === 'loading tesseract core') {
+                label = 'Φόρτωση μηχανής OCR...';
+                pct = Math.round(rawPct * 0.2);
+            } else if (m.status === 'loading language traineddata') {
+                label = 'Λήψη γλωσσικού μοντέλου...';
+                pct = 20 + Math.round(rawPct * 0.4);
+            } else if (m.status === 'initializing api') {
+                label = 'Προετοιμασία αναγνώρισης...';
+                pct = 60;
+            } else if (m.status === 'recognizing text') {
+                label = `${statusLabel}...`;
+                pct = 60 + Math.round(rawPct * 0.4);
+            }
+            setOcrStatus('loading', label, Math.min(99, Math.max(5, pct)));
+        };
+    }
+
+    // Hardware-accelerated image preprocessor (maxDim: 1200, fast GPU canvas filter)
+    function preprocessImage(file, maxDim = 1200) {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new Error('Δεν επιλέχθηκε αρχείο.'));
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(e.target.result);
+                        return;
+                    }
+                    // Hardware-accelerated contrast boost without CPU blocking
+                    ctx.filter = 'grayscale(100%) contrast(125%) brightness(105%)';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                };
+                img.onerror = () => reject(new Error('Αποτυχία ανάγνωσης εικόνας.'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Αποτυχία ανάγνωσης αρχείου.'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Process license plate from camera or photo file
+    async function processPlateImage(imageDataUrl) {
+        setOcrStatus('loading', 'Ανάγνωση πινακίδας με OCR...', 10);
+
+        try {
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα. Ελέγξτε τη σύνδεση.');
+            }
+
+            const result = await Tesseract.recognize(
+                imageDataUrl,
+                'eng',
+                { logger: makeTesseractLogger('Αναγνώριση Πινακίδας') }
+            );
+
+            const rawText = (result && result.data && result.data.text) ? result.data.text : '';
+            console.log('Plate OCR text:', rawText);
+
+            const foundPlate = extractPlateFromText(rawText);
+
+            if (foundPlate) {
+                const plateInput = document.getElementById('plateInput');
+                plateInput.value = foundPlate;
+                handlePlateInput(plateInput);
+                flashInputSuccess(plateInput);
+
+                setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
+                hideOcrBanner(4000);
+            } else {
+                setOcrStatus('warning', 'Δεν εντοπίστηκε καθαρά η πινακίδα. Πληκτρολογήστε την απευθείας στο πεδίο.', null);
+                hideOcrBanner(4500);
+            }
+        } catch (err) {
+            console.error('Plate OCR error:', err);
+            setOcrStatus('error', 'Σφάλμα αναγνώρισης πινακίδας: ' + err.message, null);
+            hideOcrBanner(5000);
+        }
+    }
+
+    // Live Camera capture & crop target box
+    async function captureAndScanPlate() {
         const video = document.getElementById('videoFeed');
         const canvas = document.getElementById('snapshotCanvas');
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (!video || !video.videoWidth) {
+            alert('Η κάμερα δεν είναι έτοιμη ακόμα.');
+            return;
+        }
 
-        // Flash feedback
-        alert('Η πινακίδα καταγράφηκε επιτυχώς!');
-        toggleCamera();
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        
+        // Focus crop on the center target box (70% width, 40% height) for 5x faster & sharper OCR
+        const cropW = Math.round(vw * 0.70);
+        const cropH = Math.round(vh * 0.40);
+        const cropX = Math.round((vw - cropW) / 2);
+        const cropY = Math.round((vh - cropH) / 2);
+
+        canvas.width = cropW;
+        canvas.height = cropH;
+        const context = canvas.getContext('2d');
+        context.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+        toggleCamera(); // Close viewfinder
+
+        await processPlateImage(dataUrl);
+    }
+
+    // Photo File capture for license plate (mobile autofocus / gallery)
+    async function handlePlateFile(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+
+        setOcrStatus('loading', 'Φόρτωση φωτογραφίας πινακίδας...', 10);
+
+        try {
+            const dataUrl = await preprocessImage(file, 1000);
+            await processPlateImage(dataUrl);
+        } catch (err) {
+            setOcrStatus('error', 'Σφάλμα επεξεργασίας φωτογραφίας: ' + err.message, null);
+            hideOcrBanner(4500);
+        } finally {
+            input.value = '';
+        }
+    }
+
+    // 📄 Registration Document (Άδεια Κυκλοφορίας) OCR Scanner
+    async function handleRegistrationFile(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+
+        setOcrStatus('loading', 'Προετοιμασία άδειας κυκλοφορίας...', 10);
+
+        try {
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα. Ελέγξτε τη σύνδεση.');
+            }
+
+            const processedDataUrl = await preprocessImage(file, 1200);
+            setOcrStatus('loading', 'Εκκίνηση OCR άδειας...', 20);
+
+            let result = null;
+            try {
+                // First attempt with Greek + English
+                result = await Tesseract.recognize(
+                    processedDataUrl,
+                    'ell+eng',
+                    { logger: makeTesseractLogger('Ανάγνωση Άδειας (GR/EN)') }
+                );
+            } catch (langErr) {
+                console.warn('ell+eng failed or timed out, fallback to fast eng:', langErr);
+                setOcrStatus('loading', 'Εναλλακτική γρήγορη ανάγνωση (eng)...', 30);
+                result = await Tesseract.recognize(
+                    processedDataUrl,
+                    'eng',
+                    { logger: makeTesseractLogger('Ανάγνωση Άδειας') }
+                );
+            }
+
+            const extractedText = (result && result.data && result.data.text) ? result.data.text : '';
+            console.log('Registration OCR text:', extractedText);
+            setOcrStatus('loading', 'Εξαγωγή στοιχείων οχήματος & myDATA...', 95);
+
+            const resp = await fetch('/api/ocr/parse_registration', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: extractedText })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                let populated = [];
+                if (data.plate) {
+                    const plateInput = document.getElementById('plateInput');
+                    plateInput.value = data.plate;
+                    handlePlateInput(plateInput);
+                    flashInputSuccess(plateInput);
+                    populated.push(`Πινακίδα: ${data.plate}`);
+                }
+                if (data.owner_name) {
+                    const ownerInput = document.getElementById('ownerNameInput');
+                    ownerInput.value = data.owner_name;
+                    flashInputSuccess(ownerInput);
+                    populated.push(`Όνομα: ${data.owner_name}`);
+                }
+                if (data.afm) {
+                    const afmInput = document.getElementById('afmInput');
+                    afmInput.value = data.afm;
+                    flashInputSuccess(afmInput);
+                    lookupAfm();
+                    populated.push(`ΑΦΜ: ${data.afm}`);
+                }
+                if (data.car_model) {
+                    const modelInput = document.getElementById('carModelInput');
+                    modelInput.value = data.car_model;
+                    flashInputSuccess(modelInput);
+                    populated.push(`Μοντέλο: ${data.car_model}`);
+                }
+
+                if (populated.length > 0) {
+                    setOcrStatus('success', `✅ Αναγνωρίστηκαν: ${populated.join(' • ')}`, 100);
+                    hideOcrBanner(6000);
+                } else {
+                    setOcrStatus('warning', '⚠️ Δεν εντοπίστηκαν ευκρινή στοιχεία. Ελέγξτε τη φωτεινότητα ή συμπληρώστε χειροκίνητα.', null);
+                    hideOcrBanner(6000);
+                }
+            } else {
+                setOcrStatus('warning', '⚠️ ' + (data.error || 'Δεν βρέθηκαν στοιχεία.'), null);
+                hideOcrBanner(5000);
+            }
+        } catch (err) {
+            console.error('Registration OCR error:', err);
+            setOcrStatus('error', 'Σφάλμα ανάγνωσης άδειας: ' + err.message, null);
+            hideOcrBanner(5000);
+        } finally {
+            input.value = '';
+        }
     }
 
     // Plate auto-formatting & instant lookup
@@ -480,134 +820,6 @@
                 statusBox.classList.remove('hidden');
                 statusText.innerText = '⚠️ Σφάλμα επικοινωνίας με την υπηρεσία ελέγχου ΑΦΜ.';
             });
-    }
-
-    // 📄 3. Registration Document (Άδεια Κυκλοφορίας) OCR Scanner
-    function preprocessImage(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const img = new Image();
-                img.onload = () => {
-                    const maxDim = 1500;
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > maxDim || h > maxDim) {
-                        if (w > h) {
-                            h = Math.round((h * maxDim) / w);
-                            w = maxDim;
-                        } else {
-                            w = Math.round((w * maxDim) / h);
-                            h = maxDim;
-                        }
-                    }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-                    
-                    // Grayscale conversion for higher contrast OCR
-                    try {
-                        const imgData = ctx.getImageData(0, 0, w, h);
-                        const d = imgData.data;
-                        for (let i = 0; i < d.length; i += 4) {
-                            const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-                            d[i] = gray;
-                            d[i+1] = gray;
-                            d[i+2] = gray;
-                        }
-                        ctx.putImageData(imgData, 0, 0);
-                    } catch (e) {
-                        // Ignore canvas security errors if any
-                    }
-                    resolve(canvas.toDataURL('image/jpeg', 0.85));
-                };
-                img.onerror = reject;
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    async function handleRegistrationFile(input) {
-        if (!input.files || input.files.length === 0) return;
-        const file = input.files[0];
-        const banner = document.getElementById('ocrProgressBanner');
-        const textEl = document.getElementById('ocrProgressText');
-        banner.classList.remove('hidden');
-        textEl.innerText = 'Προετοιμασία εικόνας άδειας...';
-
-        try {
-            const processedDataUrl = await preprocessImage(file);
-            textEl.innerText = 'Ανάγνωση κειμένου με Tesseract OCR...';
-
-            if (typeof Tesseract === 'undefined') {
-                throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα.');
-            }
-
-            const result = await Tesseract.recognize(
-                processedDataUrl,
-                'ell+eng',
-                {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            const pct = Math.round((m.progress || 0) * 100);
-                            textEl.innerText = `Ανάγνωση Άδειας (OCR)... ${pct}%`;
-                        }
-                    }
-                }
-            );
-
-            const extractedText = (result && result.data && result.data.text) ? result.data.text : '';
-            textEl.innerText = 'Εξαγωγή στοιχείων οχήματος & κατόχου...';
-
-            const resp = await fetch('/api/ocr/parse_registration', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: extractedText })
-            });
-            const data = await resp.json();
-
-            banner.classList.add('hidden');
-
-            if (data.success) {
-                let populated = [];
-                if (data.plate) {
-                    document.getElementById('plateInput').value = data.plate;
-                    handlePlateInput(document.getElementById('plateInput'));
-                    populated.push(`Πινακίδα: ${data.plate}`);
-                }
-                if (data.owner_name) {
-                    document.getElementById('ownerNameInput').value = data.owner_name;
-                    populated.push(`Όνομα: ${data.owner_name}`);
-                }
-                if (data.afm) {
-                    document.getElementById('afmInput').value = data.afm;
-                    lookupAfm();
-                    populated.push(`ΑΦΜ: ${data.afm}`);
-                }
-                if (data.car_model) {
-                    document.getElementById('carModelInput').value = data.car_model;
-                    populated.push(`Μοντέλο: ${data.car_model}`);
-                }
-
-                if (populated.length > 0) {
-                    alert(`✅ Επιτυχής αναγνώριση στοιχείων άδειας:\n\n• ${populated.join('\n• ')}`);
-                } else {
-                    alert('Δεν ήταν δυνατή η αυτόματη αναγνώριση των πεδίων. Παρακαλώ ελέγξτε τη φωτεινότητα ή συμπληρώστε χειροκίνητα.');
-                }
-            } else {
-                alert('Δεν εντοπίστηκαν στοιχεία στην εικόνα: ' + (data.error || ''));
-            }
-        } catch (err) {
-            console.error('OCR Processing error:', err);
-            banner.classList.add('hidden');
-            alert('Σφάλμα κατά την ανάγνωση της άδειας: ' + err.message);
-        } finally {
-            input.value = '';
-        }
     }
 </script>
 {% endblock %}
