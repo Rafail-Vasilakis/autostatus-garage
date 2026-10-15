@@ -24,10 +24,11 @@
                 Αυτόματη Αναγνώριση (OCR)
             </span>
             <div class="flex flex-wrap items-center gap-2">
-                <!-- 1. Live Camera Viewfinder -->
-                <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-xl border border-white/[0.08] flex items-center gap-1.5 transition">
+                <!-- 1. Live Camera Viewfinder (Primary) -->
+                <button type="button" id="toggleCameraBtn" onclick="toggleCamera()" class="px-3.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm">
                     <i class="fa-solid fa-video text-emerald-400"></i>
                     <span>Live Κάμερα</span>
+                    <span class="text-[9px] bg-emerald-500/30 text-emerald-200 px-1 py-0.2 rounded font-normal">Συνιστάται</span>
                 </button>
 
                 <!-- 2. Snap Plate Photo (Fast mobile shutter with autofocus) -->
@@ -284,6 +285,9 @@
         'Y': 'Υ', 'X': 'Χ'
     };
 
+    // Exactly 14 Greek characters with identical Latin lookalikes are valid on Greek civilian plates
+    const VALID_GREEK_CHARS = 'ABEZHIKMNOPTYXΑΒΕΖΗΙΚΜΝΟΡΤΥΧ';
+
     function normalizeToGreekPlate(str) {
         if (!str) return '';
         let res = '';
@@ -295,28 +299,53 @@
 
     function extractPlateFromText(rawText) {
         if (!rawText) return null;
-        const clean = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ').replace(/[^A-Za-zΑ-Ωα-ω0-9\s\-]/g, '');
+        const clean = rawText.toUpperCase().replace(/[\r\n\t]/g, ' ');
 
-        // 1. Strict pattern: 3 letters + 4 digits (e.g. YNE 5421, ΥΝΕ-5421)
-        const match = clean.match(/([A-ZΑ-Ω]{3})[\s\-]*([0-9]{4})/);
+        // 1. Strict pattern: 3 valid Greek/Latin letters + 4 digits (1000-9999, never starting with 0)
+        const strictRegex = new RegExp(`\\b([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})\\b`);
+        const match = clean.match(strictRegex);
         if (match) {
-            const letters = normalizeToGreekPlate(match[1]);
-            const numbers = match[2];
-            return `${letters}-${numbers}`;
+            return `${normalizeToGreekPlate(match[1])}-${match[2]}`;
         }
 
-        // 2. Fallback: Any 7 contiguous alphanumeric token where first 3 look like letters and last 4 look like digits
-        const words = clean.split(/\s+/).filter(w => w.replace(/[^A-ZΑ-Ω0-9]/g, '').length >= 6);
-        for (let w of words) {
-            const sanitized = w.replace(/[^A-ZΑ-Ω0-9]/g, '');
-            if (sanitized.length >= 7) {
-                let partLetters = sanitized.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
-                let partDigits = sanitized.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5');
-                if (/^[A-ZΑ-Ω]{3}$/.test(partLetters) && /^[0-9]{4}$/.test(partDigits)) {
-                    return `${normalizeToGreekPlate(partLetters)}-${partDigits}`;
+        // 2. Token-level analysis handling OCR confusion (0->O, 1->I, 8->B for letters, O->0, I->1, B->8, S->5 for digits)
+        const words = clean.split(/\s+/).filter(w => w.length >= 3);
+        for (let i = 0; i < words.length; i++) {
+            const w1 = words[i].replace(/[^A-ZΑ-Ω0-9]/g, '');
+
+            // Case A: Combined 7-char token (e.g. YNE5421 or ΥΝΕ-5421)
+            if (w1.length === 7) {
+                let letPart = w1.slice(0, 3).replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
+                let digPart = w1.slice(3, 7).replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+
+                const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
+                if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
+                    return `${normalizeToGreekPlate(letPart)}-${digPart}`;
+                }
+            }
+
+            // Case B: Two consecutive tokens (e.g. "YNE" "5421")
+            if (i + 1 < words.length) {
+                const w2 = words[i + 1].replace(/[^A-ZΑ-Ω0-9]/g, '');
+                if (w1.length === 3 && w2.length === 4) {
+                    let letPart = w1.replace(/0/g, 'O').replace(/1/g, 'I').replace(/8/g, 'B');
+                    let digPart = w2.replace(/O/g, '0').replace(/I/g, '1').replace(/B/g, '8').replace(/S/g, '5').replace(/Z/g, '2');
+
+                    const validLetters = [...letPart].every(c => VALID_GREEK_CHARS.includes(c));
+                    if (validLetters && /^[1-9][0-9]{3}$/.test(digPart)) {
+                        return `${normalizeToGreekPlate(letPart)}-${digPart}`;
+                    }
                 }
             }
         }
+
+        // 3. Relaxed boundary match (handles plates attached to other characters)
+        const relaxedRegex = new RegExp(`([${VALID_GREEK_CHARS}]{3})[\\s\\-]*([1-9][0-9]{3})`);
+        const matchRel = clean.match(relaxedRegex);
+        if (matchRel) {
+            return `${normalizeToGreekPlate(matchRel[1])}-${matchRel[2]}`;
+        }
+
         return null;
     }
 
@@ -394,7 +423,7 @@
         };
     }
 
-    // Hardware-accelerated image preprocessor (maxDim: 1200, fast GPU canvas filter)
+    // Hardware-accelerated image preprocessor (general documents / registration)
     function preprocessImage(file, maxDim = 1200) {
         return new Promise((resolve, reject) => {
             if (!file) {
@@ -437,43 +466,77 @@
         });
     }
 
-    // Process license plate from camera or photo file
-    async function processPlateImage(imageDataUrl) {
-        setOcrStatus('loading', 'Ανάγνωση πινακίδας με OCR...', 10);
-
-        try {
-            if (typeof Tesseract === 'undefined') {
-                throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα. Ελέγξτε τη σύνδεση.');
+    // Preprocessor specifically for Plate Photos:
+    // Focuses on the center region (70% width, 40% height) where the plate is framed,
+    // exactly like the live camera viewfinder, cutting out bumper & headlights.
+    function preprocessPlatePhoto(file, cropCenter = true) {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new Error('Δεν επιλέχθηκε αρχείο.'));
+                return;
             }
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let sx = 0, sy = 0, sw = img.width, sh = img.height;
 
-            const result = await Tesseract.recognize(
-                imageDataUrl,
-                'eng',
-                { logger: makeTesseractLogger('Αναγνώριση Πινακίδας') }
-            );
+                    if (cropCenter) {
+                        // Focus crop on center 70% width, 40% height where user points camera at plate
+                        sw = Math.round(img.width * 0.70);
+                        sh = Math.round(img.height * 0.40);
+                        sx = Math.round((img.width - sw) / 2);
+                        sy = Math.round((img.height - sh) / 2);
+                    }
 
-            const rawText = (result && result.data && result.data.text) ? result.data.text : '';
-            console.log('Plate OCR text:', rawText);
+                    // Keep high resolution around 1200px width so embossed letters are razor sharp
+                    const targetW = Math.min(1200, sw);
+                    const targetH = Math.round((sh * targetW) / sw);
 
-            const foundPlate = extractPlateFromText(rawText);
+                    canvas.width = targetW;
+                    canvas.height = targetH;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(e.target.result);
+                        return;
+                    }
+                    // High contrast black-on-white plate optimization
+                    ctx.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
+                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+                    resolve(canvas.toDataURL('image/jpeg', 0.90));
+                };
+                img.onerror = () => reject(new Error('Αποτυχία ανάγνωσης εικόνας.'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Αποτυχία φόρτωσης αρχείου.'));
+            reader.readAsDataURL(file);
+        });
+    }
 
-            if (foundPlate) {
-                const plateInput = document.getElementById('plateInput');
-                plateInput.value = foundPlate;
-                handlePlateInput(plateInput);
-                flashInputSuccess(plateInput);
-
-                setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
-                hideOcrBanner(4000);
-            } else {
-                setOcrStatus('warning', 'Δεν εντοπίστηκε καθαρά η πινακίδα. Πληκτρολογήστε την απευθείας στο πεδίο.', null);
-                hideOcrBanner(4500);
-            }
-        } catch (err) {
-            console.error('Plate OCR error:', err);
-            setOcrStatus('error', 'Σφάλμα αναγνώρισης πινακίδας: ' + err.message, null);
-            hideOcrBanner(5000);
+    // Run OCR on an image DataURL and return extracted Greek license plate
+    async function scanPlateDataUrl(imageDataUrl, minPct = 20, maxPct = 90) {
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Η μηχανή Tesseract δεν έχει φορτωθεί ακόμα. Ελέγξτε τη σύνδεση.');
         }
+
+        const result = await Tesseract.recognize(
+            imageDataUrl,
+            'eng',
+            {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const prog = Math.round((m.progress || 0) * 100);
+                        const scaled = minPct + Math.round((prog / 100) * (maxPct - minPct));
+                        setOcrStatus('loading', 'Αναγνώριση Πινακίδας...', scaled);
+                    }
+                }
+            }
+        );
+
+        const rawText = (result && result.data && result.data.text) ? result.data.text : '';
+        console.log('Plate OCR text candidate:', rawText);
+        return extractPlateFromText(rawText);
     }
 
     // Live Camera capture & crop target box
@@ -497,12 +560,33 @@
         canvas.width = cropW;
         canvas.height = cropH;
         const context = canvas.getContext('2d');
+        context.filter = 'grayscale(100%) contrast(140%) brightness(105%)';
         context.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
         toggleCamera(); // Close viewfinder
 
-        await processPlateImage(dataUrl);
+        setOcrStatus('loading', 'Ανάγνωση πινακίδας από κάμερα...', 15);
+        try {
+            const foundPlate = await scanPlateDataUrl(dataUrl, 20, 95);
+
+            if (foundPlate) {
+                const plateInput = document.getElementById('plateInput');
+                plateInput.value = foundPlate;
+                handlePlateInput(plateInput);
+                flashInputSuccess(plateInput);
+
+                setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
+                hideOcrBanner(4000);
+            } else {
+                setOcrStatus('warning', 'Δεν εντοπίστηκε καθαρά η πινακίδα. Ευθυγραμμίστε την στο πλαίσιο ή πληκτρολογήστε την.', null);
+                hideOcrBanner(4500);
+            }
+        } catch (err) {
+            console.error('Camera Plate OCR error:', err);
+            setOcrStatus('error', 'Σφάλμα αναγνώρισης: ' + err.message, null);
+            hideOcrBanner(5000);
+        }
     }
 
     // Photo File capture for license plate (mobile autofocus / gallery)
@@ -510,12 +594,34 @@
         if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
 
-        setOcrStatus('loading', 'Φόρτωση φωτογραφίας πινακίδας...', 10);
+        setOcrStatus('loading', 'Επεξεργασία φωτογραφίας πινακίδας...', 10);
 
         try {
-            const dataUrl = await preprocessImage(file, 1000);
-            await processPlateImage(dataUrl);
+            // Step 1: Center-crop first (exactly like the live camera box, cuts out car headlights & dealer frames)
+            const centerCropUrl = await preprocessPlatePhoto(file, true);
+            let foundPlate = await scanPlateDataUrl(centerCropUrl, 15, 60);
+
+            // Step 2: Fallback to full image scan if plate wasn't in center
+            if (!foundPlate) {
+                setOcrStatus('loading', 'Ευρεία αναζήτηση πινακίδας...', 65);
+                const fullPhotoUrl = await preprocessPlatePhoto(file, false);
+                foundPlate = await scanPlateDataUrl(fullPhotoUrl, 70, 95);
+            }
+
+            if (foundPlate) {
+                const plateInput = document.getElementById('plateInput');
+                plateInput.value = foundPlate;
+                handlePlateInput(plateInput);
+                flashInputSuccess(plateInput);
+
+                setOcrStatus('success', `Επιτυχία! Βρέθηκε πινακίδα: ${foundPlate}`, 100);
+                hideOcrBanner(4000);
+            } else {
+                setOcrStatus('warning', 'Δεν εντοπίστηκε καθαρά η πινακίδα. Χρησιμοποιήστε τη Live Κάμερα με το σκόπευτρο ή πληκτρολογήστε την.', null);
+                hideOcrBanner(5000);
+            }
         } catch (err) {
+            console.error('Plate photo error:', err);
             setOcrStatus('error', 'Σφάλμα επεξεργασίας φωτογραφίας: ' + err.message, null);
             hideOcrBanner(4500);
         } finally {
